@@ -343,6 +343,9 @@ function buildPayload() {
     const rd = integrity.roundingAudit(e); if (rd) fl.push(rd);
     e.flags = fl.map(f => ({ code: f.code, severity: f.severity, message: f.message }));
     e.shiftFamily = timeEngine.catOf(e.shift); // canonical from lib/time-engine.js
+    // Live mode: the raw punch stream has no NGTeco timecard totals — fill them
+    // from our own engine so every screen shows hours (work=net, total=net+break).
+    if (e.workMin == null && e.netMin != null) { e.workMin = e.netMin; if (e.otMin == null) e.otMin = 0; if (e.totalMin == null) e.totalMin = e.netMin + (e.breakMin || 0); }
   }
 
   // cross-record buddy-punch flags → attach to every record sharing pid+date
