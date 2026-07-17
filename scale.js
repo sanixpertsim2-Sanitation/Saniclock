@@ -1247,6 +1247,7 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
         <button class="seg" data-mseg="approved">Approved <span class="n" id="m-approved">0</span></button>
         <button class="seg" data-mseg="rejected">Rejected <span class="n" id="m-rejected">0</span></button>
         <button class="seg" data-mseg="all">All <span class="n" id="m-all">0</span></button>
+        <button class="seg" data-mseg="absence">Absence approvals <span class="n" id="m-absence">0</span></button>
       </div>
       <div class="grow"></div>
       <button class="btn-primary" id="addPunchBtn">
@@ -2176,7 +2177,7 @@ function setView(v){
     var nav=$("#"+VIEW_NAV[name]); if(nav)nav.classList.toggle("active",v===name);
   });
   if(v==="mend")loadMend();
-  if(v==="absence")loadAbsences();
+  if(v==="absence"||v==="mend")loadAbsences();
   if(v==="viewpunch")loadViewPunch();
   if(v==="timecard")renderTimecardView();
   if(v==="report")renderReportView();
@@ -2197,8 +2198,29 @@ function renderMendTable(){
   MEND.forEach(function(r){if(by[r.status]!==undefined)by[r.status]++;});
   $("#m-pending").textContent=by.pending;$("#m-approved").textContent=by.approved;
   $("#m-rejected").textContent=by.rejected;$("#m-all").textContent=MEND.length;
+  var apn=(typeof ABS!=="undefined"&&ABS?ABS:[]).filter(function(r){return r.status==="pending";}).length;
+  var mab=$("#m-absence");if(mab)mab.textContent=apn;
   var badge=$("#mendPendingBadge");
   if(by.pending>0){badge.hidden=false;badge.textContent=by.pending;}else{badge.hidden=true;}
+  if(seg==="absence"){
+    var arows=(typeof ABS!=="undefined"&&ABS?ABS:[]).filter(function(r){return r.status==="pending";});
+    if(!arows.length){
+      $("#mendRows").innerHTML='<tr><td colspan="6"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg><div class="t">Nothing waiting for approval</div><div>Employee absence requests appear here the moment they arrive.</div></div></td></tr>';
+      return;
+    }
+    $("#mendRows").innerHTML=arows.map(function(r){
+      var dr=r.startDate===r.endDate?r.startDate:(r.startDate+" → "+r.endDate);
+      return '<tr>'+
+        '<td data-label="Employee"><div class="emp"><span class="dot" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><div><div class="en">'+esc(r.person||r.pid)+'</div><div class="ep">'+esc(r.pid)+'</div></div></div></td>'+
+        '<td data-label="Date" class="tnum">'+esc(dr)+'</td>'+
+        '<td data-label="Time" class="tnum">'+esc(r.days)+'d</td>'+
+        '<td data-label="Remarks">'+esc(r.type)+(r.reason?' · '+esc(r.reason):'')+'</td>'+
+        '<td data-label="Status">'+mendPill(r.status)+'</td>'+
+        '<td data-label="Actions"><div class="mend-actions"><button class="approve" data-aact="approve" data-id="'+esc(r.id)+'">Approve</button><button class="reject" data-aact="reject" data-id="'+esc(r.id)+'">Reject</button></div></td>'+
+      '</tr>';
+    }).join("");
+    return;
+  }
   var rows=MEND.filter(function(r){return seg==="all"?true:r.status===seg;});
   if(!rows.length){
     $("#mendRows").innerHTML='<tr><td colspan="6"><div class="empty">'+
@@ -2562,13 +2584,14 @@ function renderAbsTable(){
       '<td data-label="Actions">'+actions+'</td></tr>';
   }).join("");
 }
-function loadAbsences(){return fetch("/api/absence-requests",{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){ABS=(j&&j.items)||[];renderAbsTable();}).catch(function(){});}
+function loadAbsences(){return fetch("/api/absence-requests",{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){ABS=(j&&j.items)||[];renderAbsTable();if(typeof state!=="undefined"&&state.mendSeg==="absence"){renderMendTable();}else{var mab2=$("#m-absence");if(mab2)mab2.textContent=ABS.filter(function(r){return r.status==="pending";}).length;}}).catch(function(){});}
 function decideAbs(id,action){
   if(action==="delete"){if(!confirm("Delete this request? This cannot be undone."))return;fetch("/api/absence-requests?id="+encodeURIComponent(id),{method:"DELETE"}).then(function(){loadAbsences();});return;}
   fetch("/api/absence-requests/"+action,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})}).then(function(r){return r.json();}).then(function(){loadAbsences();}).catch(function(){});
 }
 $("#absSeg").addEventListener("click",function(e){var b=e.target.closest(".seg");if(!b)return;state.absSeg=b.getAttribute("data-aseg");Array.prototype.forEach.call($("#absSeg").querySelectorAll(".seg"),function(x){x.classList.toggle("active",x===b);});renderAbsTable();});
 $("#absRows").addEventListener("click",function(e){var b=e.target.closest("button[data-aact]");if(!b)return;decideAbs(b.getAttribute("data-id"),b.getAttribute("data-aact"));});
+$("#mendRows").addEventListener("click",function(e){var b=e.target.closest("button[data-aact]");if(!b)return;decideAbs(b.getAttribute("data-id"),b.getAttribute("data-aact"));});
 loadAbsences();
 
 setInterval(tick,1000);tick();
@@ -2728,6 +2751,18 @@ body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
 .agb{display:flex;align-items:center;gap:5px;margin-top:3px;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:#8fd0ff}
 .agb i{width:4px;height:4px;border-radius:50%;background:#34d399;animation:magp 2.4s ease-in-out infinite}
 @keyframes magp{0%,100%{opacity:1}50%{opacity:.3}}
+.apcard{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(15,18,24,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:13px;padding:12px 13px;margin-bottom:9px}
+.apinfo{min-width:0}
+.apinfo b{display:block;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.apinfo span{display:block;font-size:11.5px;color:#93a1bd;margin-top:2px;font-family:ui-monospace,Menlo,monospace}
+.apbtns{display:flex;gap:7px;flex:none}
+.apbtns button{border-radius:10px;padding:9px 13px;font-size:12px;font-weight:700;cursor:pointer;min-height:38px}
+.apok{background:rgba(52,211,153,.16);color:#6ee7b7;border:1px solid rgba(52,211,153,.35)}
+.apno{background:rgba(251,113,133,.13);color:#fda4af;border:1px solid rgba(251,113,133,.32)}
+.apempty{color:#5b6473;font-size:12.5px;padding:8px 2px 4px}
+.nav button{position:relative}
+.nbadge{position:absolute;top:5px;right:16px;min-width:16px;height:16px;border-radius:99px;background:#fb7a54;color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.nbadge[hidden]{display:none}
 body .kpi,body .row{background:rgba(15,18,24,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .top .sub{font-size:11px;color:var(--text3);margin-top:1px}
 .top .hclk{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px}.top .clk{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px}.top .live{font-size:10px;font-weight:700;color:var(--emerald);display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.08em}
@@ -2805,6 +2840,13 @@ body .kpi,body .row{background:rgba(15,18,24,.55);backdrop-filter:blur(10px);-we
     <div class="h">Devices</div>
     <div id="devList"></div>
   </div>
+  <!-- APPROVALS -->
+  <div class="page" id="pgApprove">
+    <div class="h">Punch corrections</div>
+    <div id="apMend"></div>
+    <div class="h" style="margin-top:18px">Absence requests</div>
+    <div id="apAbs"></div>
+  </div>
 </div>
 
 <button class="fab" id="fab" title="Add punch" aria-label="Add punch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -2813,6 +2855,7 @@ body .kpi,body .row{background:rgba(15,18,24,.55);backdrop-filter:blur(10px);-we
   <button class="on" data-pg="Today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>Today</button>
   <button data-pg="People"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9"/></svg>People</button>
   <button data-pg="Devices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>Devices</button>
+  <button data-pg="Approve"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.1V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>Approvals<span class="nbadge" id="apBadge" hidden></span></button>
   <button onclick="location.href='/'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Full</button>
 </div>
 
@@ -2835,10 +2878,10 @@ function ini(n){return (n||"").split(/\\s+/).slice(0,2).map(function(w){return w
 function hue(n){var h=0;for(var i=0;i<(n||"").length;i++)h=(h*31+n.charCodeAt(i))%360;return h}
 function av(n){return 'background:linear-gradient(135deg,hsl('+hue(n)+' 55% 42%),hsl('+((hue(n)+40)%360)+' 55% 38%))'}
 function j(u,o){return fetch(u,Object.assign({cache:"no-store"},o||{})).then(function(r){if(r.status===401){location.href="/login";throw 0}return r.json()})}
-function go(pg){["Today","People","Devices"].forEach(function(p){$("#pg"+p).classList.toggle("on",p===pg)});
+function go(pg){["Today","People","Devices","Approve"].forEach(function(p){$("#pg"+p).classList.toggle("on",p===pg)});
   Array.prototype.forEach.call(document.querySelectorAll(".nav button[data-pg]"),function(b){b.classList.toggle("on",b.getAttribute("data-pg")===pg)});
   $("#fab").style.display=pg==="Today"?"grid":"none";
-  if(pg==="People"&&!EMP.length)loadPeople(); if(pg==="Devices")loadDevices();}
+  if(pg==="People"&&!EMP.length)loadPeople(); if(pg==="Devices")loadDevices(); if(pg==="Approve")loadApprovals();}
 Array.prototype.forEach.call(document.querySelectorAll(".nav button[data-pg]"),function(b){b.addEventListener("click",function(){go(b.getAttribute("data-pg"))})});
 
 function loadToday(){
@@ -2902,6 +2945,30 @@ $("#mSave").addEventListener("click",function(){
 });
 function tick(){var c=$("#clk");if(!c)return;var d=new Date(),h=d.getHours(),m=d.getMinutes();c.textContent=(h<10?"0":"")+h+":"+(m<10?"0":"")+m;}tick();setInterval(tick,1000);loadToday();setInterval(loadToday,60000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
+var APM=[],APA=[];
+function apRow(t1,t2,btns){return '<div class="apcard"><div class="apinfo"><b>'+t1+'</b><span>'+t2+'</span></div>'+btns+'</div>'}
+function apBtns(kind,id){return '<div class="apbtns"><button class="apok" data-k="'+kind+'" data-a="approve" data-id="'+esc(id)+'">Approve</button><button class="apno" data-k="'+kind+'" data-a="reject" data-id="'+esc(id)+'">Reject</button></div>'}
+function renderApprovals(){
+  var mp=APM.filter(function(r){return r.status==="pending"});
+  var ap=APA.filter(function(r){return r.status==="pending"});
+  var em=$("#apMend"),ea=$("#apAbs");
+  if(em)em.innerHTML=mp.length?mp.map(function(r){return apRow(esc(r.person||r.pid),esc(r.dateMDY)+" · "+esc(r.hms),apBtns("mend",r.id))}).join(""):'<div class="apempty">No punch corrections waiting.</div>';
+  if(ea)ea.innerHTML=ap.length?ap.map(function(r){var dr=r.startDate===r.endDate?r.startDate:(r.startDate+" → "+r.endDate);return apRow(esc(r.person||r.pid),esc(r.type)+" · "+esc(dr)+" · "+esc(r.days)+"d",apBtns("abs",r.id))}).join(""):'<div class="apempty">No absence requests waiting.</div>';
+  var n=mp.length+ap.length,bd=$("#apBadge");
+  if(bd){if(n>0){bd.hidden=false;bd.textContent=n}else{bd.hidden=true}}
+}
+function loadApprovals(){
+  j("/api/mend-punches").then(function(d){APM=(d&&d.items)||[];renderApprovals()}).catch(function(){});
+  j("/api/absence-requests").then(function(d){APA=(d&&d.items)||[];renderApprovals()}).catch(function(){});
+}
+document.addEventListener("click",function(e){
+  var b=e.target.closest("button[data-k]");if(!b)return;
+  var k=b.getAttribute("data-k"),act=b.getAttribute("data-a"),id=b.getAttribute("data-id");
+  var u=k==="mend"?"/api/mend-punches/":"/api/absence-requests/";
+  b.disabled=true;
+  j(u+act,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})}).then(function(){loadApprovals()}).catch(function(){b.disabled=false});
+});
+loadApprovals();
 (function(){
   var oc=document.querySelector(".ttl .oclock svg");if(!oc)return;
   var d=new Date(),sec=d.getSeconds(),mi=d.getMinutes()+sec/60,hr=(d.getHours()%12)+mi/60;
