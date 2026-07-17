@@ -37,10 +37,30 @@ leave request" feature shown as a faded "Coming soon".
 - Added `/brand-badge.png`, `/brand-flame.png`, `/brand-white.png` routes + optimized
   assets in data/ (whitelisted in .gitignore). Added `run-preview.sh`.
 
+## Implemented (2026-07-17) — iteration 2
+- Login rebrand: wordmark "SaniClock · Powered by SaniXperts", "Introducing SaniClock"
+  pill, removed "entire Ferrero floor" copy (now "your entire workforce … Powered by
+  SaniXperts"), kept bottom-right "Ferrero · Attendance & Payroll" (temporary).
+- Login shift section redesigned: three premium glass shift cards (Day/Afternoon/Night)
+  with sun/sunset/moon icons, per-shift accent color, animated live progress bar +
+  "Xh Ym elapsed · Zh left" meta, "ON NOW" glow on the active card.
+- Extra login motion: rising ember particles, rotating conic glow ring behind the logo,
+  mouse parallax on aurora + flame watermark, animated gradient text sweep.
+- FUNCTIONAL Absence / Leave feature (replaced the "coming soon" placeholder):
+  - Backend: data/absence-requests.json store; GET/POST /api/my-absence-requests
+    (employee, esid-gated), GET /api/absence-requests, POST .../approve|reject,
+    DELETE /api/absence-requests (admin). /api/my-absence-requests added to PUBLIC_ROUTES.
+  - Admin dashboard: "Absence Requests" nav (pending count badge) + absenceView with
+    segbar (Pending/Approved/Rejected/All) and Approve/Reject/Delete actions.
+  - Employee portal /me: "Request absence or leave" button opens a sheet (type, start/end
+    date, reason) → submits for approval; shows the employee's own requests with status.
+- Verified: testing agent iteration 2 = 100% frontend pass; backend endpoints verified
+  via curl (admin list/approve ok; employee POST 401 without session).
+
 ## Next / backlog (P1/P2)
 - P1: Restyle `MOBILE_HTML` (`/m` admin PWA) to match the premium system.
-- P1: Wire the "Request Absence / Leave" feature for real (form → approval queue,
-  reuse the mend-punch approval pattern) when the user is ready to ship it.
+- P2: Fold approved leave into payroll/attendance reporting (currently recorded only).
+- P2: Email notification to employee on approve/reject (nodemailer already wired).
 - P2: Replace circular badge with a clean flame-only mark (transparent) for crisper
   small sizes; consider a custom favicon/PWA icon refresh in brand blue.
 - P2: Seed demo employee data so `/me` portal and dashboard charts can be previewed.

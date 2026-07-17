@@ -2997,7 +2997,7 @@ function tick(){
   var cur=(mins>=420&&mins<900)?"day":(mins>=900&&mins<1380)?"aft":"night";
   Array.prototype.forEach.call(document.querySelectorAll(".shift"),function(c){
     var k=c.getAttribute("data-s"),isNow=(k===cur);c.classList.toggle("now",isNow);
-    var fill=c.querySelector(".sffill"),meta=c.querySelector("[data-meta]");if(!fill||!meta)return;
+    var fill=c.querySelector(".sffill"),meta=c.querySelector("[data-meta]"),badge=c.querySelector(".sfbadge");if(badge)badge.setAttribute("aria-hidden",isNow?"false":"true");if(!fill||!meta)return;
     if(isNow){
       var cm=(k==="night"&&mins<420)?mins+1440:mins;
       var span=SH[k].e-SH[k].s,el=cm-SH[k].s,left=span-el;
