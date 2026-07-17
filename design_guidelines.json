@@ -1,0 +1,137 @@
+{
+  "theme": "dark",
+  "concept": "Industrial Confectionery Luxury - Precision Engineering meets Rich Heritage",
+  "typography": {
+    "headings": {
+      "font_family": "'Playfair Display', serif",
+      "weights": ["400", "600", "700"],
+      "usage": "Used for Marketing Headings, the main Clock, 'Welcome back', and high-impact metric values.",
+      "letter_spacing": "tracking-tight"
+    },
+    "body": {
+      "font_family": "'Outfit', sans-serif",
+      "weights": ["300", "400", "500", "600"],
+      "usage": "Used for all dashboard data, navigation, buttons, and tabular numbers. Provides geometric precision.",
+      "letter_spacing": "tracking-normal"
+    },
+    "google_fonts_url": "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap",
+    "hierarchy": {
+      "h1": "text-4xl md:text-5xl lg:text-6xl tracking-tight font-serif",
+      "h2": "text-2xl md:text-3xl lg:text-4xl tracking-tight font-serif",
+      "h3": "text-xl font-sans font-medium",
+      "body": "text-base font-sans text-muted-foreground",
+      "overline": "text-xs font-sans uppercase tracking-[0.2em] text-primary"
+    }
+  },
+  "colors": {
+    "background": "#080707",
+    "foreground": "#F9F6F0",
+    "surface": "#12100F",
+    "card": "#1A1816",
+    "card_foreground": "#F9F6F0",
+    "border": "#332D29",
+    "input": "#1A1816",
+    "primary": "#C5A059",
+    "primary_foreground": "#080707",
+    "primary_hover": "#D4AF37",
+    "secondary": "#24201E",
+    "secondary_foreground": "#F9F6F0",
+    "accent": "#2A2522",
+    "accent_foreground": "#C5A059",
+    "muted": "#24201E",
+    "muted_foreground": "#A8A29E",
+    "success": "#10B981",
+    "destructive": "#9F1239",
+    "warning": "#F59E0B",
+    "ring": "rgba(197, 160, 89, 0.4)",
+    "chart": {
+      "1": "#C5A059",
+      "2": "#8A6D3B",
+      "3": "#4A3F35",
+      "4": "#A8A29E",
+      "5": "#E5E5E5"
+    },
+    "description": "Deep Cocoa/Obsidian base with Champagne Gold accents. Creates a premium, high-end 'Ferrero' industrial feel. Avoid pure black/white to prevent eye strain."
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "light": false,
+      "dark": true,
+      "classes": "bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+    },
+    "textures": "Apply subtle CSS noise or radial gradients using #C5A059 at 5% opacity to break up flat dark backgrounds.",
+    "borders": "1px solid #332D29 for subtle card separation. Use primary gold color for active states.",
+    "shadows": {
+      "glow": "shadow-[0_0_15px_rgba(197,160,89,0.3)]",
+      "depth": "shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary_hover transition-colors rounded-none shadow-[4px_4px_0_0_#332D29] hover:shadow-[2px_2px_0_0_#332D29] hover:translate-y-[2px] hover:translate-x-[2px] font-sans font-medium",
+      "clock_action": "Massive, highly tactile button. When inactive: muted outline. When active/clocking in: glowing primary gold with 'tracing beam' border."
+    },
+    "cards": {
+      "base": "bg-card border border-border rounded-lg p-6 hover:border-primary/30 transition-colors duration-300",
+      "shift_card": "Interactive card. Active shift gets a soft gold glow and border. Inactive shifts are faded (opacity-60)."
+    },
+    "coming_soon_badge": {
+      "classes": "absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg",
+      "text": "text-primary font-sans uppercase tracking-[0.2em] border border-primary/50 px-4 py-1 rounded-full text-xs"
+    },
+    "live_clock": {
+      "description": "Massive font-serif digital clock displaying current hours, minutes, and seconds. Use framer-motion AnimatePresence to slide up/down numbers as they change."
+    }
+  },
+  "grids": {
+    "dashboard_layout": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "admin_analytics": "grid grid-cols-1 lg:grid-cols-12 gap-6 (Charts span 8, summaries span 4)",
+    "sign_in": "grid grid-cols-1 lg:grid-cols-2 min-h-screen"
+  },
+  "layouts": {
+    "navigation": "Side navigation for admin (collapsed by default to show more data) or a premium glassmorphic top header. For employee clock-in, use a minimalist top header with the SaniXperts logo.",
+    "spacing": "Generous inner padding for cards (p-6 to p-8). Tight spacing for data tables to maintain industrial density.",
+    "page_container": "max-w-[1600px] mx-auto p-4 md:p-8"
+  },
+  "motion": {
+    "page_load": "Staggered fade-up (y: 20, opacity: 0 to 1) for all dashboard cards using framer-motion. Stagger delay: 0.1s.",
+    "hover_states": "Micro-interactions on all buttons and cards. scale: 1.02 or subtle inner border glow.",
+    "clock_tick": "Number ticker animation for the seconds in the live facility clock."
+  },
+  "accessibility": {
+    "contrast": "Ensure text-muted-foreground (#A8A29E) meets 4.5:1 ratio against #1A1816.",
+    "focus": "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none",
+    "motion_preference": "Respect prefers-reduced-motion media query for framer-motion animations."
+  },
+  "image_urls": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1709377195538-5522ed0f9e10?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwyfHxsdXh1cmlvdXMlMjBhYnN0cmFjdCUyMGdvbGQlMjBkYXJrfGVufDB8fHx8MTc4NDI0OTgyMXww&ixlib=rb-4.1.0&q=85",
+      "description": "Luxurious abstract gold and dark curves for the sign-in page split screen."
+    },
+    "card_texture": {
+      "url": "https://images.unsplash.com/photo-1685625971503-ef1f82128939?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwzfHxsdXh1cmlvdXMlMjBhYnN0cmFjdCUyMGdvbGQlMjBkYXJrfGVufDB8fHx8MTc4NDI0OTgyMXww&ixlib=rb-4.1.0&q=85",
+      "description": "Secondary dark/gold abstract texture for premium banners or card backgrounds."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Use Lucide React for all icons (e.g., Factory, Clock, Fingerprint, Lock, Calendar, Users).",
+    "Install and use 'framer-motion' for staggered entrance animations and the live clock number ticker.",
+    "Install and use 'recharts' for the Admin dashboard analytics. Customize the charts to use the specified gold/brown/grey palette. NO default blue/purple colors.",
+    "Implement the 'Request Absence' section as a highly visual 'Coming Soon' card using the frosted glass badge component.",
+    "The Clock In / Clock Out functionality must be the centerpiece of the employee dashboard. Make the button massive and satisfying, with clear active/inactive states.",
+    "Do not use generic border-radius. Follow a slightly sharper aesthetic (rounded-md or rounded-none with brutalist shadows) to emulate industrial precision, paired with the luxury gold.",
+    "Ensure all interactive elements have data-testid attributes for testing."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "NEVER use generic, 'on-distribution' AI outputs. Avoid simplistic gradients and centered layouts.",
+    "Create depth through layered design elements with z-index hierarchy and glassmorphism.",
+    "DO NOT apply universal transitions (e.g., `transition: all`). Add transitions strictly for specific interactive elements.",
+    "DO NOT center align the app container. Respect natural reading flow.",
+    "Use modern button styles (sharp corners with industrial offset shadows as specified).",
+    "NEVER use AI assistant emojis (🤖, 💭, 💡). Use Lucide icons strictly.",
+    "Every interaction needs micro-animations (hover states, focus states).",
+    "Use 2-3x more spacing than typical for breathing room, except in data-dense tables.",
+    "DO NOT use completely transparent backgrounds for overlays or headers. Always use solid or heavily blurred backdrops.",
+    "All .js files must adhere to this guideline, not .tsx (since the environment uses React .js files)."
+  ]
+}
