@@ -1,0 +1,36 @@
+{
+  "summary": "Frontend-only UI/UX verification of the SaniClock premium redesign (server-rendered Node app on scale.js). Verified /login page render, admin login flow with credentials admin/Saniclock2026! and redirect to /, dashboard content and disabled 'Request Absence' nav (aria-disabled + SOON pill), /me sign-in page render, and console/asset error scan. All core acceptance criteria for the redesign pass. One real visual bug found: brand logo images (/brand-badge.png, /brand-flame.png) are behind the auth gate, so on unauthenticated pages (/login and /me) they 302 to /login and render broken.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "LOGIN_HTML + ME_HTML brand logo",
+        "issue": "Brand image assets are NOT listed in PUBLIC_ROUTES (scale.js line 2941). Unauthenticated GET /brand-badge.png and /brand-flame.png return 302 -> /login (HTML), so the login and /me pages render broken <img> (naturalWidth=0). Verified by evaluating img.naturalWidth in a fresh browser context: brand-badge.png = 0x0, brand-flame.png = 0x0. What the /login screenshot appears to show as a 'SaniXper' circle is only the CSS-styled alt-text fallback, not the actual PNG.",
+        "selector": "img[src='/brand-badge.png'], img[src='/brand-flame.png']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "In scale.js (around line 2941) add '/brand-badge.png', '/brand-flame.png', '/brand-white.png' to the PUBLIC_ROUTES Set so anonymous users on /login and /me can load the actual brand logos. Alternatively, move the brand-badge/brand-flame/brand-white handler (currently at scale.js ~2974) BEFORE the auth-gate block at ~2942 so it never gets intercepted. This is a trivial one-line fix but has a highly visible UX impact — right now the premium redesign shows a broken image placeholder next to 'SaniClock' on both the admin and employee sign-in pages for every first-time visitor."
+  ],
+  "critical_code_review_comments": [
+    "scale.js is 3549 lines in a single file — recommend splitting HTML templates (LOGIN_HTML, ME_HTML, MOBILE_HTML, page()) and route handlers into separate modules for maintainability.",
+    "Auth-gate PUBLIC_ROUTES misses static brand image assets — see UI bug above.",
+    "/api/my-punches on /me polls without a session and returns 401 by design (expected). The console error 'Failed to load resource: 401' is noisy but not functional — consider gating the initial fetch behind a lightweight session check, or catching the 401 without letting it surface to the console."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only test)", "frontend": "95%"},
+  "test_credentials": "Admin: admin / Saniclock2026! (verified working, redirects /login -> /). No employee accounts seeded — /me login not attempted per instructions.",
+  "seed_data_creation": "None. Data unavailable state on dashboard is expected (no CSV present).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Verified: (1) /login renders premium dark design with live clock (LIVE FACILITY TIME + seconds ticking), three shift rows Day/Afternoon/Night with ON NOW pill on active shift, and 'Absence & leave requests — SOON' teaser card. Form ids #f/#u/#p/#btn all present and interactive. (2) Admin login with admin/Saniclock2026! posts to /api/login and redirects to /. (3) Dashboard '/' shows header with logo+live clock (02:11:47 shown, updates), left sidebar with REPORT / MANAGEMENT sections, and #navAbsence has class 'navItem soon', aria-disabled='true', with span.navSoon text 'Soon' — confirmed non-clickable. Empty states 'No attendance yet' and 'Data unavailable. No CSV found' shown as expected. (4) /me renders #loginForm with #em/#pw and 'Sign in' heading — did not attempt login (no seeded users). (5) Only console error observed is the expected 401 on /api/my-punches when polling /me unauthenticated. NO other JS errors on any page. Only real bug: brand PNG images 302 to /login for anonymous users; broken logo on /login and /me. Fix location: scale.js:2941 PUBLIC_ROUTES set.",
+  "rca of the issue": "Auth gate at scale.js lines 2940-2951 redirects any URL not in PUBLIC_ROUTES to /login when the request is unauthenticated. PUBLIC_ROUTES includes /login-bg.jpg, /icon.svg, /icon-*.png but omits /brand-badge.png, /brand-flame.png, /brand-white.png. The brand image handler at line 2974 (which reads from data/) is never reached for anonymous requests because the gate short-circuits with a 302 to /login. Reproduction: `curl -sI https://<preview>/brand-badge.png` returns 'HTTP/2 302 location: /login'. Mitigation: add the three brand image paths to PUBLIC_ROUTES, or move their handler above the gate."
+}

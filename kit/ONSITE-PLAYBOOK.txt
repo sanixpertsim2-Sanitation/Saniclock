@@ -1,0 +1,76 @@
+==================================================================
+ SaniClock — On-Site Intercept Playbook (travel-router method)
+ Goal: make the NG-TC2 push punches to OUR receiver, not NGTeco cloud.
+==================================================================
+
+WHY THIS WORKS (the router kills all 3 blockers at once)
+  - Nokia has no DNS setting        -> clock gets DNS from OUR travel router
+  - Nokia WiFi client isolation     -> clock + PC share the travel router LAN
+  - Clock is WiFi-only              -> clock joins the travel router's SSID
+
+--------------------------------------------------------------
+ HAVE READY
+--------------------------------------------------------------
+  [ ] GL.iNet travel router (Mango GL-MT300N-V2 or Opal GL-SFT1200),
+      firmware updated once before going on-site.
+  [ ] The Nokia WiFi name + password (for the router's uplink).
+  [ ] The NG-TC2's WiFi (so you can point the clock at the new SSID -
+      via the clock's own WiFi setup or the NGTeco app that provisioned it).
+  [ ] Capture PC with Node.js installed.
+  [ ] These files (all downloadable, see COMMANDS below):
+        discover.js            - DNS + port + first-byte protocol capture
+        saniclock-receiver.js  - HTTP+HTTPS "say yes" punch receiver
+        saniclock-iclock.js    - plain HTTP-only receiver (fallback)
+
+--------------------------------------------------------------
+ STEP 1 - Travel router setup
+--------------------------------------------------------------
+  1. Power the GL.iNet, connect the PC to its WiFi (or LAN port).
+  2. Admin panel (usually http://192.168.8.1):
+       - Set Repeater / WISP mode -> connect UPLINK to the Nokia WiFi.
+       - Note the router's LAN subnet (default 192.168.8.0/24).
+  3. Set the DHCP DNS server it hands out -> the CAPTURE PC's IP on the
+     router LAN (see it on the PC with `ipconfig`, e.g. 192.168.8.x).
+       (GL.iNet: More Settings -> Custom DNS Server, or LAN DHCP settings.)
+
+--------------------------------------------------------------
+ STEP 2 - Start capture on the PC (Admin PowerShell)
+--------------------------------------------------------------
+  Download + run the capture tool (set OURIP to THIS PC's router-LAN IP):
+     Invoke-WebRequest -Uri "https://saniclock.anubhavflow.com/kit/discover.js" -OutFile "C:\discover.js"
+     $env:OURIP="192.168.8.RUN_IPCONFIG_TO_GET_THIS"
+     & "C:\Program Files\nodejs\node.exe" C:\discover.js
+  (open firewall first if needed:
+     netsh advfirewall firewall add rule name="d53"  dir=in action=allow protocol=UDP localport=53
+     netsh advfirewall firewall add rule name="d80"  dir=in action=allow protocol=TCP localport=80
+     netsh advfirewall firewall add rule name="d443" dir=in action=allow protocol=TCP localport=443 )
+
+--------------------------------------------------------------
+ STEP 3 - Move the clock onto our router + power-cycle it
+--------------------------------------------------------------
+  Point the NG-TC2's WiFi at the travel router's SSID, then power-cycle it.
+  On boot it phones home -> the capture window shows:
+     DNS QUERY  -> <the exact NGTeco endpoint hostname>
+     *** HTTP :80  ...          => PLAIN HTTP  (we win)
+     *** TCP :443 (TLS 0x16)    => HTTPS       (test no-pinning next)
+     *** TCP :443 (not TLS)     => raw binary  (mimic-server next)
+  >>> Send me these lines. <<<
+
+--------------------------------------------------------------
+ STEP 4 - Switch to the receiver + redirect (I drive this live)
+--------------------------------------------------------------
+  Stop discover.js (Ctrl+C). Then:
+     Invoke-WebRequest -Uri "https://saniclock.anubhavflow.com/kit/saniclock-receiver.js" -OutFile "C:\saniclock-receiver.js"
+     & "C:\Program Files\nodejs\node.exe" C:\saniclock-receiver.js
+  The DNS answer already points the clock's endpoint at this PC, so its
+  next push lands here. Tap a finger on the clock -> watch:
+     >>> PUNCH  pid=..  M/D/YYYY HH:MM:SS
+  That punch is now in SaniClock. Independent. Done.
+
+--------------------------------------------------------------
+ OUTCOME MAP
+--------------------------------------------------------------
+  HTTP / raw-mimic / unpinned-TLS  -> saniclock-receiver.js handles it. WIN.
+  Pinned TLS (clock rejects our cert) -> only true dead end; use an open
+  clock instead (receiver already built and waiting for it).
+==================================================================
