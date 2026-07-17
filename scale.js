@@ -2713,11 +2713,22 @@ const MOBILE_HTML = `<!DOCTYPE html>
 :root{--bg:#05070e;--bg2:#080c18;--surface:rgba(18,22,33,.62);--surface2:rgba(32,38,54,.55);--line:rgba(120,160,255,.13);--line2:rgba(143,208,255,.24);--text:#eaf0fb;--text2:#93a1bd;--text3:#8493ad;--accent:#2f7bff;--accent2:#59a6ff;--emerald:#34d399;--amber:#fbbf24;--rose:#fb7185;--radius:18px;--glow:rgba(47,123,255,.5)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 html{background:var(--bg)}
-body{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px;overscroll-behavior-y:none;min-height:100vh;background:radial-gradient(900px 520px at 82% -8%,rgba(47,123,255,.16),transparent 58%),radial-gradient(680px 520px at 4% 4%,rgba(89,166,255,.12),transparent 52%),radial-gradient(760px 660px at 50% 118%,rgba(47,123,255,.10),transparent 55%),linear-gradient(170deg,var(--bg2),var(--bg) 55%);background-attachment:fixed}body::before{content:"";position:fixed;inset:0;z-index:-1;background:url("/login-bg.jpg?v=1") center/cover no-repeat;opacity:.15;pointer-events:none}
+body{color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:15px;overscroll-behavior-y:none;min-height:100vh;background:radial-gradient(900px 520px at 82% -8%,rgba(47,123,255,.16),transparent 58%),radial-gradient(680px 520px at 4% 4%,rgba(89,166,255,.12),transparent 52%),radial-gradient(760px 660px at 50% 118%,rgba(47,123,255,.10),transparent 55%),linear-gradient(170deg,var(--bg2),var(--bg) 55%);background-attachment:fixed}body::before{content:"";position:fixed;inset:0;z-index:-1;background:url("/stage-bg.png?v=2") center/cover no-repeat;opacity:.3;pointer-events:none}
 body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
 .top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;display:flex;align-items:center;gap:11px}
 .top img{width:34px;height:34px;border-radius:50%;filter:drop-shadow(0 0 10px var(--glow))}
-.top .ttl{font-weight:800;font-size:18px;letter-spacing:-.3px;background:linear-gradient(180deg,#fff,#bcd2ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.top .ttl{font-weight:800;font-size:22px;letter-spacing:-.3px;background:linear-gradient(180deg,#fff,#bcd2ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.ttl .oclock{display:inline-grid;place-items:center;width:.92em;height:.92em;margin:0 .02em;vertical-align:-.09em;filter:drop-shadow(0 0 5px rgba(79,140,255,.5))}
+.ttl .oclock svg{width:100%;height:100%;display:block}
+.oclock .hh,.oclock .mh,.oclock .sh{transform-origin:20px 20px;transform-box:view-box}
+.oclock .hh{animation:mocSpin 43200s linear infinite}
+.oclock .mh{animation:mocSpin 3600s linear infinite}
+.oclock .sh{animation:mocSpin 60s linear infinite}
+@keyframes mocSpin{to{transform:rotate(360deg)}}
+.agb{display:flex;align-items:center;gap:5px;margin-top:3px;font-family:ui-monospace,Menlo,monospace;font-size:8.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:#8fd0ff}
+.agb i{width:4px;height:4px;border-radius:50%;background:#34d399;animation:magp 2.4s ease-in-out infinite}
+@keyframes magp{0%,100%{opacity:1}50%{opacity:.3}}
+body .kpi,body .row{background:rgba(15,18,24,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .top .sub{font-size:11px;color:var(--text3);margin-top:1px}
 .top .hclk{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px}.top .clk{font-size:15px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.3px}.top .live{font-size:10px;font-weight:700;color:var(--emerald);display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.08em}
 .top .live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 0 rgba(52,211,153,.5);animation:pulse 2s infinite}
@@ -2772,7 +2783,7 @@ body{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
 <body>
 <div class="top">
   <img src="/icon.svg?v=2" alt=""/>
-  <div><div class="ttl">SaniClock</div><div class="sub" id="today">—</div></div>
+  <div><div class="ttl" role="img" aria-label="SaniClock">SaniCl<span class="oclock" aria-hidden="true"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16.5" fill="none" stroke="#dbe7ff" stroke-width="3.6"/><g stroke="#dbe7ff" stroke-width="2" opacity=".45"><line x1="20" y1="6.5" x2="20" y2="9.5"/><line x1="20" y1="30.5" x2="20" y2="33.5"/><line x1="6.5" y1="20" x2="9.5" y2="20"/><line x1="30.5" y1="20" x2="33.5" y2="20"/></g><line class="hh" x1="20" y1="21" x2="20" y2="13" stroke="#e8f0ff" stroke-width="3" stroke-linecap="round"/><line class="mh" x1="20" y1="21" x2="20" y2="9.5" stroke="#e8f0ff" stroke-width="2.2" stroke-linecap="round"/><line class="sh" x1="20" y1="22.5" x2="20" y2="8" stroke="#59a6ff" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="20" r="2" fill="#59a6ff"/></svg></span>ck</div><div class="sub" id="today">—</div><div class="agb"><i></i>Agentic OS &middot; initializing</div></div>
   <div class="hclk"><span class="clk" id="clk">--:--</span><span class="live">Live</span></div>
 </div>
 
@@ -2891,6 +2902,20 @@ $("#mSave").addEventListener("click",function(){
 });
 function tick(){var c=$("#clk");if(!c)return;var d=new Date(),h=d.getHours(),m=d.getMinutes();c.textContent=(h<10?"0":"")+h+":"+(m<10?"0":"")+m;}tick();setInterval(tick,1000);loadToday();setInterval(loadToday,60000);
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});
+(function(){
+  var oc=document.querySelector(".ttl .oclock svg");if(!oc)return;
+  var d=new Date(),sec=d.getSeconds(),mi=d.getMinutes()+sec/60,hr=(d.getHours()%12)+mi/60;
+  var hh=oc.querySelector(".hh"),mh=oc.querySelector(".mh"),sh=oc.querySelector(".sh");
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    hh.setAttribute("transform","rotate("+(hr*30)+" 20 20)");
+    mh.setAttribute("transform","rotate("+(mi*6)+" 20 20)");
+    sh.setAttribute("transform","rotate("+(sec*6)+" 20 20)");
+    return;
+  }
+  hh.style.animationDelay=(-hr*3600)+"s";
+  mh.style.animationDelay=(-mi*60)+"s";
+  sh.style.animationDelay=(-sec)+"s";
+})();
 </script></body></html>`;
 const SANICLOCK_SW = `const C='saniclock-v5';
 self.addEventListener('install',function(e){e.waitUntil(caches.open(C).then(function(c){return c.addAll(['/m','/icon.svg','/manifest.webmanifest']);}).then(function(){return self.skipWaiting();}).catch(function(){return self.skipWaiting();}));});
