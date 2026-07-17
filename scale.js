@@ -53,7 +53,8 @@ const paysheet = require('./lib/paysheet');       // bi-weekly employer attendan
 const punchPair = require('./lib/punch-pair');
 const ngteco = require('./lib/ngteco-api');
 const empAuth = require('./lib/emp-auth');
-const mailer = require('./lib/mailer');           // per-employee self-service auth       // NGTeco cloud bridge: push employees, enroll fingerprints, real enrolled status    // schedule-free pairing from raw punch stream
+const mailer = require('./lib/mailer');
+const reportMailer = require('./lib/report-mailer');           // per-employee self-service auth       // NGTeco cloud bridge: push employees, enroll fingerprints, real enrolled status    // schedule-free pairing from raw punch stream
 const deviceLive = require('./lib/device-live');  // CSV_HEADER/toRawCsvRow — reused so an
                                                    // approved mend-punch is indistinguishable
                                                    // from a real device/CSV punch downstream.
@@ -1151,6 +1152,7 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
           <div class="note" id="exNote" hidden></div>
           <button class="btn-primary" id="exConfirm">Export CSV</button>
           <button class="btn-primary" id="exPaysheet" title="Bi-weekly attendance sheet (Excel) for the pay period containing the selected date" style="margin-top:6px">Pay-period sheet (.xls)</button>
+          <button class="btn-primary" id="exEmailReport" title="Email a branded payroll report with per-department workbooks + a punch card viewer" style="margin-top:6px">Email report&hellip;</button>
         </div>
       </div>
     </div>
@@ -2142,6 +2144,23 @@ $("#exPaysheet").addEventListener("click",function(){
   setLive("sync","Preparing pay sheet…");
   setTimeout(function(){setLive(DATA.ok?"ok":"degraded",DATA.ok?"Live":"Degraded");},1400);
   closeExportPop();});
+$("#exEmailReport").addEventListener("click",function(){
+  var mode=selectedExMode(),start=null,end=null;
+  if(mode==="week"){var wr=weekRangeMDY(state.date);if(wr){start=wr.start;end=wr.end;}}
+  else if(mode==="custom"){start=$("#exStart").value;end=$("#exEnd").value;if(!start||!end){alert("Choose a start and end date first.");return;}}
+  var to=prompt("Send the payroll report to which email address?","");
+  if(!to)return;
+  var btn=this;btn.disabled=true;var oldTxt=btn.textContent;btn.textContent="Sending…";
+  fetch("/api/report/email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({start:start,end:end,to:to})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      btn.disabled=false;btn.textContent=oldTxt;
+      if(j.ok)alert("\u2713 Report emailed to "+j.sentTo+" ("+j.employees+" employees, "+j.totalHours+" total hours).");
+      else alert("Could not send: "+(j.error||"failed")+(j.error&&j.error.indexOf("not set up")>=0?"":"\\n\\nIf email isn\u2019t set up yet, open /connect/mail first."));
+    })
+    .catch(function(){btn.disabled=false;btn.textContent=oldTxt;alert("Network error.");});
+  closeExportPop();
+});
 document.addEventListener("click",function(){if($("#exportPop")&&!$("#exportPop").hidden)closeExportPop();});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&$("#exportPop")&&!$("#exportPop").hidden)closeExportPop();});
 
@@ -2519,7 +2538,7 @@ $("#empRows").addEventListener("click",function(e){var b=e.target.closest("butto
 });
 var fpCur=null,fpFinger=null;
 var FINGERS=["Right thumb","Right index","Right middle","Left thumb","Left index","Left middle"];
-function emailLogin(id){var e=EMP.find(function(x){return x.id===id;});if(!e)return;if(!e.email){alert("This employee has no email on file. Add one via Edit first.");return;}if(!confirm("Email login details to "+e.person+" ("+e.email+")?\\n\\nThey get a fresh one-time password and the app link."))return;fetch("/api/mail/invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pid:e.pid})}).then(function(r){return r.json();}).then(function(j){if(j.ok)alert("\u2713 Login emailed to "+j.sentTo);else alert("Could not send: "+(j.error||"failed")+"\\n\\nIf email isn\u2019t set up yet, open /connect/mail first.");}).catch(function(){alert("Network error.");});}
+function emailLogin(id){var e=EMP.find(function(x){return x.id===id;});if(!e)return;if(!e.email){alert("This employee has no email on file. Add one via Edit first.");return;}if(!confirm("Email login details to "+e.person+" ("+e.email+")?\\n\\nThey get a fresh one-time password and the app link."))return;fetch("/api/mail/invite",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pid:e.pid})}).then(function(r){return r.json();}).then(function(j){if(j.ok)alert("\u2713 Login emailed to "+j.sentTo);else alert("Could not send: "+(j.error||"failed")+"\\\\n\\\\nIf email isn\u2019t set up yet, open /connect/mail first.");}).catch(function(){alert("Network error.");});}
 function fpSet(body,cb){fetch("/api/employees/fp-set",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(j){loadEmployees();if(cb)cb(j);}).catch(function(){});}
 function openFpModal(id){fpCur=EMP.find(function(x){return x.id===id;});if(!fpCur)return;fpFinger=fpCur.fpFinger||null;
   var who='Employee: <b>'+esc(fpCur.person)+'</b> &middot; ID '+esc(fpCur.pid);
@@ -3554,6 +3573,71 @@ const server = http.createServer((req, res) => {
         await mailer.send(rec.email, 'Your SaniClock timesheet login', mailer.inviteHtml(rec.person, rec.email, pass, link), mailer.inviteText(rec.person, rec.email, pass, link));
         res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, sentTo: rec.email }));
       } catch (e) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: (e && e.message) || 'invite failed' })); }
+    }).catch((e) => { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: e.message })); });
+    return;
+  }
+  if (url === '/api/report/email' && req.method === 'POST') {
+    readJsonBody(req).then(async (body) => {
+      try {
+        if (!mailer.configured()) throw new Error('Email is not set up yet — open /connect/mail first.');
+        const to = String((body && body.to) || '').trim();
+        if (!to) throw new Error('Recipient email is required.');
+        const startISO = normalizeToISO(body && body.start);
+        const endISO = normalizeToISO(body && body.end);
+        const d = loadData();
+        const enriched = timeEngine.enrichAll(d.records || []);
+        const opts = {};
+        if (startISO) opts.periodStart = startISO;
+        if (endISO) opts.periodEnd = endISO;
+        const summary = payroll.periodSummary(enriched, opts);
+        const employees = employeeStore.load();
+        const deptByPid = new Map(employees.map((e) => [String(e.pid).toUpperCase(), e.department || 'Unassigned']));
+        const rosterCountByDept = new Map();
+        for (const e of employees) { const dep = e.department || 'Unassigned'; rosterCountByDept.set(dep, (rosterCountByDept.get(dep) || 0) + 1); }
+
+        const rowsByDept = new Map();
+        for (const pid in summary.byEmployee) {
+          const e = summary.byEmployee[pid];
+          const dep = deptByPid.get(String(pid).toUpperCase()) || 'Unassigned';
+          if (!rowsByDept.has(dep)) rowsByDept.set(dep, []);
+          rowsByDept.get(dep).push({ pid: e.pid, person: e.person, regularMin: e.regularMin, overtimeMin: e.overtimeMin, totalNetMin: e.totalNetMin });
+        }
+
+        const periodDates = enriched.filter((r) => r.workDate && (!startISO || r.workDate >= startISO) && (!endISO || r.workDate <= endISO));
+        const spanStart = startISO || (periodDates.length ? periodDates.reduce((a, r) => (r.workDate < a ? r.workDate : a), periodDates[0].workDate) : new Date().toISOString().slice(0, 10));
+        const spanEnd = endISO || (periodDates.length ? periodDates.reduce((a, r) => (r.workDate > a ? r.workDate : a), periodDates[0].workDate) : spanStart);
+
+        const deptRows = [];
+        const attachments = [];
+        let totEmployees = 0, totWorked = 0, totMin = 0;
+        for (const [dep, rows] of rowsByDept) {
+          rows.sort((a, b) => String(a.person).localeCompare(String(b.person)));
+          const worked = rows.filter((r) => r.totalNetMin > 0).length;
+          const totalMin = rows.reduce((s2, r) => s2 + (r.totalNetMin || 0), 0);
+          const rosterCount = rosterCountByDept.get(dep) || rows.length;
+          deptRows.push({ name: dep, employees: rosterCount, worked, totalMin });
+          totEmployees += rosterCount; totWorked += worked; totMin += totalMin;
+          const xml = reportMailer.buildDeptWorkbookXml(dep, spanStart, spanEnd, rows);
+          const fname = reportMailer.workbookFilename(dep, spanStart, spanEnd);
+          attachments.push({ filename: fname, content: xml, contentType: 'application/vnd.ms-excel' });
+        }
+        deptRows.sort((a, b) => b.employees - a.employees);
+
+        const facilityName = (settingsStore.load().facilityName) || 'SaniClock';
+        const punchViewerHtml = reportMailer.buildPunchCardHtml(spanStart, spanEnd, facilityName, periodDates);
+        const viewerFilename = 'SaniClock_Punch_Card_' + spanStart + '_' + spanEnd + '.html';
+        attachments.push({ filename: viewerFilename, content: punchViewerHtml, contentType: 'text/html' });
+
+        const emailAttachList = attachments.map((a) => ({ name: a.filename, color: a.contentType === 'text/html' ? '#2f9e5c' : '#2a4568' }));
+        const { html, text } = reportMailer.buildReportEmailHtml({
+          facilityName, periodStartISO: spanStart, periodEndISO: spanEnd,
+          deptRows, totals: { employees: totEmployees, worked: totWorked, totalMin: totMin },
+          attachments: emailAttachList,
+        });
+
+        await mailer.send(to, facilityName + ' Payroll — Employee Hours (' + spanStart + ' to ' + spanEnd + ')', html, text, attachments);
+        res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: true, sentTo: to, employees: totEmployees, totalHours: Math.round(totMin / 6) / 10 }));
+      } catch (e) { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: (e && e.message) || 'report email failed' })); }
     }).catch((e) => { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: e.message })); });
     return;
   }
