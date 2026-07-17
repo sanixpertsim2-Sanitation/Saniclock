@@ -1,138 +1,115 @@
 {
-  "theme": "dark",
-  "concept": "Industrial Confectionery Luxury - Precision Engineering meets Rich Heritage",
+  "theme": "Alabaster Authority (High-End Editorial Fintech)",
+  "mode": "light",
+  "instructions_to_main_agent": [
+    "CRITICAL REDESIGN: Discard the old dark navy/obsidian design entirely. DO NOT use neon glows, ember particles, glass blur, or heavy dark gradients.",
+    "AESTHETIC: Aim for an 'Old Money Tech' / Premium SaaS aesthetic. Think Stripe meets high-end architectural firm. The design must project 'data serenity'—minimalist, authoritative, and extremely clear.",
+    "TECH STACK: Use standard React (.js, NOT .tsx) with Tailwind CSS and Shadcn UI. All components must be written in pure JavaScript.",
+    "BRAND INTEGRATION: The SaniXperts logo is an electric-blue mark with chrome wordmark. Use the provided 'Royal Blue' solely as a sharp, deliberate accent against expansive white/alabaster space.",
+    "TESTING: Every interactive element MUST have a 'data-testid' attribute in kebab-case based on its role (e.g., 'sign-in-submit-btn')."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Never center-align the app container (no .App { text-align: center; }).",
+    "Avoid the 'AI slop' look: do not use basic equal-square grids everywhere, do not use universal 'transition: all'.",
+    "Create depth using z-index hierarchy and layered ambient shadows, not heavy drop shadows.",
+    "Use 2-3x more spacing than typical defaults. Cramped designs look cheap.",
+    "Never use purely transparent backgrounds on floating elements; always use solid pure white with a crisp border.",
+    "Never use placeholder AI emojis for icons. Use lucide-react or @phosphor-icons/react."
+  ],
   "typography": {
-    "headings": {
-      "font_family": "'Playfair Display', serif",
-      "weights": ["400", "600", "700"],
-      "usage": "Used for Marketing Headings, the main Clock, 'Welcome back', and high-impact metric values.",
-      "letter_spacing": "tracking-tight"
+    "system": "The Anti-Default Rule: DO NOT use Inter, Roboto, or Space Grotesk.",
+    "fonts": {
+      "headings": {
+        "family": "Cabinet Grotesk, sans-serif",
+        "description": "Architectural, striking, bold. Used for page titles, major metrics, and the sign-in hero.",
+        "weights": ["700 (Bold)", "800 (ExtraBold)"],
+        "tracking": "tracking-tight to tracking-tighter"
+      },
+      "body": {
+        "family": "Satoshi, sans-serif",
+        "description": "Clean, highly legible geometric sans for data tables, UI controls, and text.",
+        "weights": ["400 (Regular)", "500 (Medium)", "700 (Bold)"],
+        "tracking": "tracking-normal"
+      },
+      "mono_data": {
+        "family": "JetBrains Mono, monospace",
+        "description": "For exact time stamps (07:00-15:00), exact currency, and device IDs."
+      }
     },
-    "body": {
-      "font_family": "'Outfit', sans-serif",
-      "weights": ["300", "400", "500", "600"],
-      "usage": "Used for all dashboard data, navigation, buttons, and tabular numbers. Provides geometric precision.",
-      "letter_spacing": "tracking-normal"
-    },
-    "google_fonts_url": "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap",
-    "hierarchy": {
-      "h1": "text-4xl md:text-5xl lg:text-6xl tracking-tight font-serif",
-      "h2": "text-2xl md:text-3xl lg:text-4xl tracking-tight font-serif",
-      "h3": "text-xl font-sans font-medium",
-      "body": "text-base font-sans text-muted-foreground",
-      "overline": "text-xs font-sans uppercase tracking-[0.2em] text-primary"
+    "scale": {
+      "h1": "text-4xl sm:text-5xl font-extrabold tracking-tighter leading-none",
+      "h2": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "h3": "text-xl font-bold tracking-tight",
+      "metric_value": "text-4xl font-extrabold tracking-tighter",
+      "body": "text-base leading-relaxed",
+      "label": "text-xs font-bold uppercase tracking-[0.15em] text-slate-500"
     }
   },
   "colors": {
-    "background": "#05070C",
-    "foreground": "#F4F8FF",
-    "surface": "#0A0E16",
-    "card": "#0E131C",
-    "card_foreground": "#F4F8FF",
-    "border": "#1E2735",
-    "input": "#0E131C",
-    "primary": "#2E9BFF",
-    "primary_foreground": "#04070D",
-    "primary_hover": "#57B2FF",
-    "secondary": "#141A24",
-    "secondary_foreground": "#F4F8FF",
-    "accent": "#101722",
-    "accent_foreground": "#7FC4FF",
-    "muted": "#141A24",
-    "muted_foreground": "#93A1B5",
-    "chrome": "#C7D2DE",
-    "success": "#10B981",
-    "destructive": "#F43F5E",
-    "warning": "#F59E0B",
-    "ring": "rgba(46, 155, 255, 0.4)",
-    "chart": {
-      "1": "#2E9BFF",
-      "2": "#57B2FF",
-      "3": "#1E5F9E",
-      "4": "#C7D2DE",
-      "5": "#7FC4FF"
+    "css_variables": {
+      "--bg-base": "#F7F7F5",
+      "--bg-surface": "#FFFFFF",
+      "--bg-surface-hover": "#F1F5F9",
+      "--text-primary": "#090A0B",
+      "--text-secondary": "#475569",
+      "--text-tertiary": "#94A3B8",
+      "--border-light": "#E2E8F0",
+      "--border-focus": "#0044FF",
+      "--brand-primary": "#0044FF",
+      "--brand-primary-hover": "#0033CC",
+      "--brand-accent-soft": "#EBF1FF",
+      "--status-success-bg": "#ECFDF5",
+      "--status-success-text": "#059669",
+      "--status-warning-bg": "#FFFBEB",
+      "--status-warning-text": "#D97706",
+      "--status-error-bg": "#FEF2F2",
+      "--status-error-text": "#DC2626"
     },
-    "description": "Deep obsidian/navy base with electric SaniXperts blue accents and brushed-chrome highlights. Matches the blue-flame droplet logo. Avoid pure black to prevent flatness; layer subtle navy gradients."
+    "strategy": "Apply colors via Tailwind arbitrary values or configure in tailwind.config.js. Rely on 90% monochrome (white/alabaster/obsidian) with 10% electric blue for primary CTAs and active states."
   },
   "visual_enhancers": {
-    "glassmorphism": {
-      "light": false,
-      "dark": true,
-      "classes": "bg-black/40 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
-    },
-    "textures": "Apply subtle CSS noise or radial gradients using #C5A059 at 5% opacity to break up flat dark backgrounds.",
-    "borders": "1px solid #332D29 for subtle card separation. Use primary gold color for active states.",
-    "shadows": {
-      "glow": "shadow-[0_0_15px_rgba(197,160,89,0.3)]",
-      "depth": "shadow-[0_10px_40px_rgba(0,0,0,0.8)]"
-    }
+    "borders": "Expose the skeleton. Use 1px solid borders (border-slate-200) extensively on cards, table rows, and input fields to create a crisp, technical feel.",
+    "shadows": "Zero heavy shadows. Use soft ambient depth: shadow-[0_4px_24px_rgba(0,0,0,0.02)] on hover or floating panels.",
+    "radius": "Micro-rounding. Use rounded-md (6px) or rounded-lg (8px) for cards and inputs. Do not use fully pill-shaped extreme rounding except for status pills.",
+    "textures": "Include a subtle noise overlay (mix-blend-multiply, opacity 2%) over the sign-in background to kill digital flatness."
   },
   "components": {
-    "buttons": {
-      "primary": "bg-primary text-primary-foreground hover:bg-primary_hover transition-colors rounded-none shadow-[4px_4px_0_0_#332D29] hover:shadow-[2px_2px_0_0_#332D29] hover:translate-y-[2px] hover:translate-x-[2px] font-sans font-medium",
-      "clock_action": "Massive, highly tactile button. When inactive: muted outline. When active/clocking in: glowing primary gold with 'tracing beam' border."
-    },
-    "cards": {
-      "base": "bg-card border border-border rounded-lg p-6 hover:border-primary/30 transition-colors duration-300",
-      "shift_card": "Interactive card. Active shift gets a soft gold glow and border. Inactive shifts are faded (opacity-60)."
-    },
-    "coming_soon_badge": {
-      "classes": "absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg",
-      "text": "text-primary font-sans uppercase tracking-[0.2em] border border-primary/50 px-4 py-1 rounded-full text-xs"
-    },
-    "live_clock": {
-      "description": "Massive font-serif digital clock displaying current hours, minutes, and seconds. Use framer-motion AnimatePresence to slide up/down numbers as they change."
-    }
+    "buttons": "Solid primary brand color (#0044FF) with pure white text. Hover state translates Y-axis by -2px with a soft shadow. No gradient backgrounds.",
+    "cards": "Pure white background, 1px slate-200 border, no default shadow. Padding MUST be generous (p-6 or p-8).",
+    "inputs": "Height h-12. White bg, slate-200 border. On focus: ring-2 ring-brand-primary/20 border-brand-primary.",
+    "status_pills": "Small (text-xs), uppercase tracking-wider, pill-shaped (rounded-full), soft background with bold colored text (e.g., Emerald text on light Mint bg).",
+    "bottom_sheets": "For mobile PWA. Must slide up smoothly. White surface, rounded-t-2xl, with a 4px high, 40px wide drag handle (bg-slate-200) at the top.",
+    "live_clock": "Remove the old serif clock. Use Cabinet Grotesk or JetBrains Mono, extreme size (text-5xl or 6xl), tracking-tighter, in Obsidian color. Pure data serenity."
   },
-  "grids": {
-    "dashboard_layout": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
-    "admin_analytics": "grid grid-cols-1 lg:grid-cols-12 gap-6 (Charts span 8, summaries span 4)",
-    "sign_in": "grid grid-cols-1 lg:grid-cols-2 min-h-screen"
-  },
-  "layouts": {
-    "navigation": "Side navigation for admin (collapsed by default to show more data) or a premium glassmorphic top header. For employee clock-in, use a minimalist top header with the SaniXperts logo.",
-    "spacing": "Generous inner padding for cards (p-6 to p-8). Tight spacing for data tables to maintain industrial density.",
-    "page_container": "max-w-[1600px] mx-auto p-4 md:p-8"
+  "grids_and_layouts": {
+    "spacing": "Extremely generous. Use gap-8 or gap-12 between dashboard sections.",
+    "dashboard_grid": "Bento-style layout. High density but clearly separated by 1px borders. Top row for KPI summary (col-span-1 each), Main middle for charts (col-span-2 or 3), right column for live feeds/activity.",
+    "sign_in_page": "Split screen or centered floating architectural card. If split, left side pure white with form, right side edge-to-edge abstract elegant architecture image."
   },
   "motion": {
-    "page_load": "Staggered fade-up (y: 20, opacity: 0 to 1) for all dashboard cards using framer-motion. Stagger delay: 0.1s.",
-    "hover_states": "Micro-interactions on all buttons and cards. scale: 1.02 or subtle inner border glow.",
-    "clock_tick": "Number ticker animation for the seconds in the live facility clock."
+    "philosophy": "Restrained and elegant. No bouncy effects. No particles.",
+    "entrances": "Staggered fade-up. Use Framer Motion: initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}.",
+    "hovers": "Subtle border color shift (slate-200 to slate-300) and minor lift (-translate-y-1) for interactive cards. Duration 200ms ease-out.",
+    "progress_indicators": "Smooth width transitions for the shift progress bar. Use a solid electric blue fill inside a very light gray track."
   },
-  "accessibility": {
-    "contrast": "Ensure text-muted-foreground (#A8A29E) meets 4.5:1 ratio against #1A1816.",
-    "focus": "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background outline-none",
-    "motion_preference": "Respect prefers-reduced-motion media query for framer-motion animations."
+  "media": {
+    "icons": "Use Phosphor Icons (Regular or Light weight) or Lucide React. Strict 24px bounding box, stroke-width 1.5. No solid icons unless active.",
+    "avatars": "Sharp, high-quality photography. Give avatars a 1px border-white to separate them in overlapping stacks."
   },
   "image_urls": {
-    "hero_background": {
-      "url": "https://images.unsplash.com/photo-1709377195538-5522ed0f9e10?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwyfHxsdXh1cmlvdXMlMjBhYnN0cmFjdCUyMGdvbGQlMjBkYXJrfGVufDB8fHx8MTc4NDI0OTgyMXww&ixlib=rb-4.1.0&q=85",
-      "description": "Luxurious abstract gold and dark curves for the sign-in page split screen."
+    "sign_in_background": {
+      "url": "https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTV8MHwxfHNlYXJjaHwyfHxlbGVnYW50JTIwYWJzdHJhY3QlMjB3aGl0ZSUyMHRleHR1cmV8ZW58MHx8fHwxNzg0MjU2MTYyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Elegant abstract white wavy texture. Use this for the background of the sign-in page to give an ultra-premium, architectural feel."
     },
-    "card_texture": {
-      "url": "https://images.unsplash.com/photo-1685625971503-ef1f82128939?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwzfHxsdXh1cmlvdXMlMjBhYnN0cmFjdCUyMGdvbGQlMjBkYXJrfGVufDB8fHx8MTc4NDI0OTgyMXww&ixlib=rb-4.1.0&q=85",
-      "description": "Secondary dark/gold abstract texture for premium banners or card backgrounds."
+    "marketing_accent": {
+      "url": "https://images.unsplash.com/photo-1531972111231-7482a960e109?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwyfHxwcmVtaXVtJTIwbW9kZXJuJTIwb2ZmaWNlJTIwYXJjaGl0ZWN0dXJlfGVufDB8fHx8MTc4NDI1NjE2MXww&ixlib=rb-4.1.0&q=85",
+      "description": "Clear glass building interior. Can be used in a split-screen sign in layout or inside the self-service portal header."
     }
   },
-  "instructions_to_main_agent": [
-    "Use Lucide React for all icons (e.g., Factory, Clock, Fingerprint, Lock, Calendar, Users).",
-    "Install and use 'framer-motion' for staggered entrance animations and the live clock number ticker.",
-    "Install and use 'recharts' for the Admin dashboard analytics. Customize the charts to use the specified gold/brown/grey palette. NO default blue/purple colors.",
-    "Implement the 'Request Absence' section as a highly visual 'Coming Soon' card using the frosted glass badge component.",
-    "The Clock In / Clock Out functionality must be the centerpiece of the employee dashboard. Make the button massive and satisfying, with clear active/inactive states.",
-    "Do not use generic border-radius. Follow a slightly sharper aesthetic (rounded-md or rounded-none with brutalist shadows) to emulate industrial precision, paired with the luxury gold.",
-    "Ensure all interactive elements have data-testid attributes for testing."
-  ],
-  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
-    "NEVER use generic, 'on-distribution' AI outputs. Avoid simplistic gradients and centered layouts.",
-    "Create depth through layered design elements with z-index hierarchy and glassmorphism.",
-    "DO NOT apply universal transitions (e.g., `transition: all`). Add transitions strictly for specific interactive elements.",
-    "DO NOT center align the app container. Respect natural reading flow.",
-    "Use modern button styles (sharp corners with industrial offset shadows as specified).",
-    "NEVER use AI assistant emojis (🤖, 💭, 💡). Use Lucide icons strictly.",
-    "Every interaction needs micro-animations (hover states, focus states).",
-    "Use 2-3x more spacing than typical for breathing room, except in data-dense tables.",
-    "DO NOT use completely transparent backgrounds for overlays or headers. Always use solid or heavily blurred backdrops.",
-    "All .js files must adhere to this guideline, not .tsx (since the environment uses React .js files)."
-  ]
+  "key_functionalities_implementation": {
+    "sign_in": "Pure white card centered on the abstract white texture background. Include an 'encrypted-session' trust cue (small lock icon + '256-bit Secure Session' text in slate-500) below the login button.",
+    "live_facility_clock": "Rendered in massive Cabinet Grotesk. The three shifts (Day, Afternoon, Night) displayed as crisp horizontal segments. The active shift gets a solid '#0044FF' top border and bold text, while inactive are muted slate-400.",
+    "admin_dashboard": "Left sidebar (w-64) pure white with border-r. Active nav item has a subtle blue background and bold blue text. Avatar table includes clear status pills (Emerald for 'Present', Crimson for 'Absent').",
+    "employee_portal": "Mobile-first. Use bottom sheets for 'Request Punch Correction'. Daily attendance shown as bento-style cards with bold typography for hours worked."
+  }
 }
