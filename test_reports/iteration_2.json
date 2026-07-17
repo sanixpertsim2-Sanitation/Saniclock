@@ -1,0 +1,32 @@
+{
+  "summary": "Frontend-only re-test of SaniClock premium redesign after iter-1 fixes. All 6 acceptance criteria PASS: (1) /login renders SaniClock + Powered by SaniXperts wordmark, 'Introducing SaniClock' pill, live clock ticking (02:35:47 -> 02:35:48), three shift cards (Day 07-15, Afternoon 15-23, Night 23-07) each with icon; the active Night card has classes 'shift night now', visible 'On now' pill, and progress meta '3h 35m elapsed · 4h 25m left'. Brand logo image (/brand-badge.png) loads (naturalWidth=320) — the iter-1 broken-image bug is fixed. 'Ferrero floor' wording is absent; 'Ferrero · Attendance & Payroll' badge present. (2) Admin login admin/Saniclock2026! at /login posts to /api/login and redirects to /. (3) #navAbsence is now an active button (class='navItem', no aria-disabled, no 'soon' text) and shows a pending count badge of '2'. Clicking opens #absenceView with #absSeg 'Pending 2 | Approved 0 | Rejected 0 | All 2' and #absRows listing both seeded requests (Aisha Khan/1001/Vacation/Family trip and Marco Rossi/1002/Sick/Flu). (4) Approve flow works: clicking [data-aact='approve'] on the first pending row updates segbar to 'Pending 1 | Approved 1 | Rejected 0 | All 2'; switching to Approved tab shows the Aisha Khan row with 'Approved' status pill. (5) /me renders sign-in card; force-showing the portal reveals #openAbs button 'Request absence or leave' which opens the #absOv bottom sheet containing #aType (SELECT, default 'Vacation'), #aStart & #aEnd (input type=date), #aReason (input), and #aSubmit ('Submit for approval') — all required elements present and interactive. (6) Only console error observed is the single expected 401 on /api/my-punches during /me unauthenticated polling. No JS errors on /login or /.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/login shift cards",
+        "issues": [
+          "Minor DOM observation (not a functional bug): <span class='sfbadge'>On now</span> is rendered inside ALL three shift cards, not only the active one. Visually only the Night card (which has the '.now' modifier class) shows the pill because CSS hides the badge on non-.now cards. Consider only emitting the badge markup on the active card to avoid confusing DOM/screenreader output — SRs may announce 'On now' three times."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "OPTIONAL polish: in LOGIN_HTML shift-card template, only emit the .sfbadge span when the shift is active (cur === key) instead of always emitting it and hiding via CSS — improves a11y (screenreaders currently announce 'On now' for Day, Afternoon, and Night)."
+  ],
+  "critical_code_review_comments": [
+    "scale.js remains a single ~3500-line file. Recommend splitting LOGIN_HTML, ME_HTML, MOBILE_HTML, page(), and API handlers into separate modules for maintainability.",
+    "/me polls /api/my-punches without a session and surfaces the resulting 401 as a browser console error. Consider a lightweight session probe before starting the poller, or catch/swallow the 401 to keep the console clean.",
+    "Login shift-card badge rendered on all three cards (see design issue above). Prefer conditional rendering over CSS-only visibility for a11y."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "n/a (frontend-only test)", "frontend": "100% (all acceptance criteria pass)" },
+  "test_credentials": "Admin admin / Saniclock2026! at /login — verified working. No employee accounts seeded; /me tested by force-showing #portalView per instructions.",
+  "seed_data_creation": "Did not create seed data. However, testing did mutate data/absence-requests.json by approving Aisha Khan's request (was pending, now approved). Marco Rossi remains pending. Per review_request this mutation is acceptable.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All redesign + absence-request criteria verified end-to-end. Post-test seed state: absence-requests.json has 1 approved (Aisha Khan/Vacation) and 1 pending (Marco Rossi/Sick). If next agent needs 2 pending again, restore the file. Brand logo assets (/brand-badge.png) are now publicly accessible (iter-1 bug fixed). Only optional polish item remaining is the 'On now' badge conditional-render suggestion."
+}
