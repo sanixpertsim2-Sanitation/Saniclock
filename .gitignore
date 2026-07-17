@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit
+.mail.env
+.ngteco.env
+*.env
+
+# Backups (timestamped safety copies)
+*.bak-*
+*.bak
+*.bak-prelive
+
+# Runtime state, employee PII, attendance records, admin/session creds.
+# Everything in data/ is ignored EXCEPT the served static assets below.
+data/*
+!data/icon-180.png
+!data/icon-192.png
+!data/icon-512.png
+!data/icon-maskable-512.png
+!data/login-bg.jpg
+
+# Logs / temp
+*.log
+scratchpad/
+tmp/

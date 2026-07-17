@@ -1,0 +1,59 @@
+{
+  "_readme": [
+    "Business rules for the bi-weekly pay sheet (/api/paysheet.xls).",
+    "Mirrors Process_Timecard v6.5.5 (Office Scripts / Power Automate).",
+    "Edit this file and the NEXT export picks it up automatically — no restart needed.",
+    "All names must be lowercase, single-spaced. '(pt)' suffixes are stripped before matching."
+  ],
+
+  "_noBreak_comment": "Employees with NO 30-min break deduction — sheet hours = clock-out minus clock-in, no break subtracted.",
+  "noBreak": [
+    "adarsh kandiyil",
+    "arjan singh",
+    "prabhdeep singh",
+    "paramjit singh",
+    "karanpreet singh",
+    "delna cyriac",
+    "sahil attri",
+    "nardeen nissan",
+    "jashandeep singh"
+  ],
+
+  "_clarkEmployees_comment": "Always on the Clark sheet, even when their shift name has no 'Clark' in it.",
+  "clarkEmployees": [
+    "delna cyriac",
+    "sahil attri",
+    "nardeen nissan"
+  ],
+
+  "_dualLocation_comment": "CSV name -> PAYROLL (IM2) row that receives the hours ADDED on top. Employee never gets a Clark row.",
+  "dualLocation": {
+    "lashodharn t": "Lashotharan Subramaniam"
+  },
+
+  "_exempt_comment": "Machine hours are NEVER written for these employees; their row shows dashes (managed manually).",
+  "exempt": [
+    "adarsh kandiyil"
+  ],
+
+  "_nameCorrections_comment": "CSV spelling -> correct spelling (applied to matching AND display).",
+  "nameCorrections": {
+    "gurpratap": "gurpartap",
+    "japhther": "japhtar",
+    "antwi atta": "attawa"
+  },
+
+  "_rounding_comment": "Tiered rounding of net hours. minutes<=downMax -> round down; <=halfMax -> .5; else round up.",
+  "rounding": {
+    "default": { "downMax": 19, "halfMax": 45 },
+    "perEmployee": {
+      "delna cyriac": { "downMax": 9, "halfMax": 39 }
+    }
+  },
+
+  "_snapClockIn_comment": "Employees whose clock-IN snaps to shift start: 06:20-07:30->7:00/7:30, 14:20-15:30->15:00/15:30, 22:20-23:30->23:00/23:30 (first half of window snaps to the hour, second half to the half-hour).",
+  "snapClockIn": ["surinder singh"],
+
+  "_earlyOut_comment": "Employees whose clock-OUT 14:20-14:59 snaps to 15:00, then soft-snaps to shift end (within 60 min after shift end: <20 min over -> shift end, 20-60 min over -> shift end + 30).",
+  "earlyOut": ["khushdeep singh #1"]
+}
