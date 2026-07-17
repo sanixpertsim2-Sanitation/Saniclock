@@ -37,6 +37,25 @@ leave request" feature shown as a faded "Coming soon".
 - Added `/brand-badge.png`, `/brand-flame.png`, `/brand-white.png` routes + optimized
   assets in data/ (whitelisted in .gitignore). Added `run-preview.sh`.
 
+## Implemented (2026-07-17) — iteration 3: full "Alabaster Authority" redesign
+- COMPLETE visual pivot away from the dark neon/glass look to a premium light editorial
+  system (design_agent direction, /app/design_guidelines.json updated).
+  - Palette: alabaster #f7f7f5 / white surfaces / obsidian #090a0b text / electric blue
+    #0044ff accent; crisp 1px borders; soft ambient shadows; NO neon/glass/particles.
+  - Fonts: Cabinet Grotesk (bold display/headings/clock/KPIs) + Satoshi (body/UI) +
+    JetBrains Mono (time/data). Loaded via Fontshare + Google.
+  - Dashboard page(): already token-driven — retuned the light `:root`/[data-theme=light]
+    tokens to Alabaster, forced default theme = light, swapped --serif/--sans/--mono,
+    replaced the old neon/glass override blocks with a crisp "Alabaster Authority"
+    override (bordered cards, blue active nav w/ left rail, mono clock).
+  - Login: fully REWRITTEN — split screen (white form left / alabaster clock+shifts right),
+    bold Cabinet Grotesk "Welcome back." + massive live clock, crisp shift segments
+    (active = blue top border + ON NOW + progress), 256-bit trust cue, data-testids.
+  - Employee portal /me: retuned to light Alabaster (tokens, fonts, sheets, status colors).
+- Functionality unchanged (same element ids/logic; absence feature untouched).
+- Verified: testing agent iteration 3 = 100% frontend pass, no UI bugs, no regressions,
+  good contrast on all three surfaces. Applied a11y polish (shift badge aria-hidden).
+
 ## Implemented (2026-07-17) — iteration 2
 - Login rebrand: wordmark "SaniClock · Powered by SaniXperts", "Introducing SaniClock"
   pill, removed "entire Ferrero floor" copy (now "your entire workforce … Powered by
