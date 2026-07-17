@@ -37,7 +37,27 @@ leave request" feature shown as a faded "Coming soon".
 - Added `/brand-badge.png`, `/brand-flame.png`, `/brand-white.png` routes + optimized
   assets in data/ (whitelisted in .gitignore). Added `run-preview.sh`.
 
-## Implemented (2026-07-17) — iteration 3: full "Alabaster Authority" redesign
+## Implemented (2026-07-17) — iteration 4: LUXURY DARK, high-motion, executive pivot
+- Reverted the light Alabaster look to a premium LUXURY DARK executive-SaaS theme per
+  user request (obsidian #08090c, hairline borders, electric-blue #4f8cff accent;
+  Cabinet Grotesk + Satoshi + JetBrains Mono retained).
+- Login FULLY REWRITTEN (dark): split screen; left dark form panel; right pane fills the
+  previously-blank space with an ANIMATED attendance activity graph (SVG line+area,
+  animated draw, pulsing live dot, sweeping scan line, gridlines), feature chips
+  (24/7 · 3 shifts · Auto), live clock, and shift cards w/ live progress. Motion:
+  staggered fade-up entrances, tactile ripple + press-scale on the button.
+- Dashboard: forced default theme = dark; retuned dark tokens to luxury; rewrote the
+  override block for dark (translucent glass header, bordered cards, blue active nav rail),
+  added row/card entrance stagger and global button press-scale (tactile feedback).
+- Employee portal /me: converted back to dark luxury (tokens/colors/sheets), tile fade-in
+  stagger, button press-scale.
+- Admin mobile PWA /m: converted to dark luxury (tokens + fonts), page-transition motion,
+  bottom-nav tap feedback, bold Cabinet Grotesk headings.
+- Verified: testing agent iteration 4 = 100% (7/7) frontend pass; no UI bugs, no
+  regressions, good contrast across /login, /, /me, /m; login->dashboard and absence
+  approve flows confirmed; /m tab switching works.
+
+## Implemented (2026-07-17) — iteration 3: full "Alabaster Authority" redesign (superseded by dark)
 - COMPLETE visual pivot away from the dark neon/glass look to a premium light editorial
   system (design_agent direction, /app/design_guidelines.json updated).
   - Palette: alabaster #f7f7f5 / white surfaces / obsidian #090a0b text / electric blue
