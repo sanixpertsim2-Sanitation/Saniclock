@@ -19,6 +19,10 @@ data/*
 !data/icon-512.png
 !data/icon-maskable-512.png
 !data/login-bg.jpg
+!data/brand-badge.png
+!data/brand-flame.png
+!data/brand-mark.png
+!data/brand-white.png
 
 # Logs / temp
 *.log
