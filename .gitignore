@@ -24,6 +24,7 @@ data/*
 !data/brand-mark.png
 !data/brand-white.png
 !data/stage-bg.jpg
+!data/stage-bg.png
 
 # Logs / temp
 *.log
