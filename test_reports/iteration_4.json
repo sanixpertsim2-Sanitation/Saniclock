@@ -1,0 +1,37 @@
+{
+  "summary": "Frontend regression pass for the 'Luxury Dark' theme pivot of SaniClock. All 7 acceptance criteria PASS end-to-end. (1) /login renders LUXURY DARK: body bg rgb(8,9,12) obsidian, body text rgb(243,245,249); left pane shows 'SaniClock / POWERED BY SANIXPERTS' wordmark, bold 'Welcome back.' heading, USERNAME/PASSWORD inputs, gradient blue 'Sign in' button, and '256-bit encrypted session · SaniXperts' cue; right pane shows a large live clock ticking (05:16:38 → 05:16:40), 'Friday, Jul 17, 2026' date, feature chips ('24 / 7 Coverage', '3 shifts Rotating', 'Auto Payroll'), a large 'Attendance rhythm' SVG activity graph (1x .gline, 1x .garea, 1x .gdot, plus grid axis + LIVE SYNC pill), and three shift cards (Day/Afternoon/Night) with the active Night card highlighted with '.now' class + 'ON NOW' pill + '6h 16m elapsed · 1h 44m left' live progress text. All required data-testids present (login-form, login-username-input, login-password-input, login-submit-btn, live-clock). (2) admin/Saniclock2026! posts to /api/login and redirects to '/'; dashboard renders DARK (body bg rgb(8,9,12)) with blue active sidebar item (Absence Requests highlighted in electric-blue). (3) #navAbsence is a full nav item with pending badge '2'; clicking opens #absenceView (not hidden); #absSeg reads 'Pending 2 | Approved 0 | Rejected 0 | All 2'; #absRows lists both seeded requests (Aisha Khan/1001/Vacation/Family trip and Marco Rossi/1002/Sick/Flu); clicking [data-aact='approve'] on first pending row updates segbar to 'Pending 1 | Approved 1 | Rejected 0 | All 2'. (4) /me renders DARK (body text rgb(243,245,249)); force-showing #portalView reveals #openAbs button; clicking it opens #absOv sheet (class='ov on') with #aType (SELECT, default Vacation), #aStart & #aEnd (input type=date, default 07/17/2026), #aReason (input), #aSubmit ('Submit for approval'). (5) After admin login, /m loads DARK (bg rgb(8,9,12), text rgb(243,245,249)); KPI cards visible (On roster, Present, On floor, Absent — all 0 due to no seed data + 'No records' empty state); bottom nav .nav has 4 buttons — 3 with data-pg (Today/People/Devices) plus 'Full' (onclick=location.href='/'); clicking [data-pg='People'] then [data-pg='Devices'] applies '.on' class to nav button and visually transitions to that page ('Devices' → 'No devices yet' empty state screenshot confirmed). (6) Contrast/readability — no unreadable elements on any of the 4 pages; only heuristic false positive was HTML root element containing inline <style> text (not user-visible). (7) No new JS console errors on /login, /, /m; the only errors observed are the 2 expected 401s on /api/my-punches from /me unauthenticated polling.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/login shift cards (carryover a11y polish, not a new regression)",
+        "issues": [
+          "The '<span class=\"sfbadge\">ON NOW</span>' markup is still emitted inside all three shift cards; only the '.now' (active) card visually shows it because CSS hides '.sfbadge' on non-active cards. Screenreaders may announce 'ON NOW' three times. Optional a11y polish: emit .sfbadge only when cur===key."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "OPTIONAL a11y polish (carried from iter-2/3, still applies): in LOGIN_HTML shift-card template, only emit the .sfbadge 'ON NOW' span when the shift is the active one (cur === key), rather than emitting it on all three and hiding two via CSS.",
+    "OPTIONAL console cleanup: /me polls /api/my-punches on page load without a session and surfaces the 401 as a browser console error. Add a lightweight session probe (or catch/swallow the 401) so /me console is clean for genuine debugging."
+  ],
+  "critical_code_review_comments": [
+    "scale.js remains a single ~3600+ line monolith. Strongly recommend splitting LOGIN_HTML, ME_HTML, MOBILE_HTML, page() dashboard, and API handlers into separate modules (e.g., views/login.js, views/me.js, views/dashboard.js, views/mobile.js, api/absence.js). Each theme pivot re-touches every string in this file.",
+    "The mobile PWA (/m) uses 'Full' as a 4th bottom-nav button with a raw onclick=location.href='/' handler instead of the .nav [data-pg] pattern used by the other three buttons. Consider unifying — either give it data-pg and handle inside the JS router, or move it out of the same visual row so users don't expect the same transition behavior.",
+    "The heuristic contrast scan flagged the HTML root element because getComputedStyle picks up inline <style> textContent inside the tree walk — a benign false positive for us, but the same class of bug would silently include <script> and <style> textContent in any real 'find broken text' audits. If any future automated a11y scanner is added, filter by :visible + non-<script>/<style>.",
+    "LOGIN_HTML activity graph is currently a static/decorative SVG (hard-coded path). The 'LIVE SYNC' pill implies real-time data. If it's intentionally decorative, remove the LIVE SYNC pill or de-emphasize it to avoid misleading users; otherwise wire it to a real endpoint."
+  ],
+  "updated_files": [
+    "/app/data/absence-requests.json (restored to 2 pending before test to match acceptance criteria; approving Aisha again as part of test — post-test state: 1 pending Marco Rossi + 1 approved Aisha Khan)"
+  ],
+  "success_rate": { "backend": "n/a (frontend-only regression)", "frontend": "100% (all 7 acceptance criteria pass)" },
+  "test_credentials": "Admin admin / Saniclock2026! at /login — verified working. No employee accounts seeded; /me portal tested by force-showing #portalView per instructions.",
+  "seed_data_creation": "Restored /app/data/absence-requests.json to 2 pending (Aisha Khan Vacation + Marco Rossi Sick) before testing since iter-3 left one approved. Test then approved Aisha so final state = 1 approved (Aisha) + 1 pending (Marco). If next iteration needs a clean 2-pending state, restore the file again.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Luxury Dark redesign fully working end-to-end and functionally identical to iterations 2 and 3. Post-run absence-requests.json state = 1 approved (Aisha Khan/Vacation) + 1 pending (Marco Rossi/Sick); restore to 2 pending if the next iteration needs a clean state. Note: on /m the 'Full' button uses onclick=location.href='/' not data-pg, so any playwright test asserting all four bottom-nav buttons carry data-pg will fail — the acceptance criterion only asked for People and Devices transitions, which do work. meta theme-color on /me and /m is now #05070e which correctly matches the dark obsidian bg (was flagged in iter-3 under the light theme, now aligned). The only remaining optional polish items are the same two carried from iter-2/iter-3: conditional-render 'ON NOW' badge on /login, and swallow the /me 401 console noise.",
+  "rca of the issue": "n/a — no regressions detected. All acceptance criteria met."
+}
