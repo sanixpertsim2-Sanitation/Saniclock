@@ -2938,7 +2938,7 @@ const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
 
   // ---- Auth gate: everything except the login surface requires a session ----
-  const PUBLIC_ROUTES = new Set(['/login', '/api/login', '/api/logout', '/favicon.ico', '/manifest.webmanifest', '/sw.js', '/icon.svg', '/icon-180.png', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/login-bg.jpg', '/api/emp-login', '/api/emp-logout', '/api/my-punches', '/api/emp-change-password', '/me', '/manifest-me.webmanifest']);
+  const PUBLIC_ROUTES = new Set(['/login', '/api/login', '/api/logout', '/favicon.ico', '/manifest.webmanifest', '/sw.js', '/icon.svg', '/icon-180.png', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/login-bg.jpg', '/brand-badge.png', '/brand-flame.png', '/brand-white.png', '/api/emp-login', '/api/emp-logout', '/api/my-punches', '/api/emp-change-password', '/me', '/manifest-me.webmanifest']);
   if (!PUBLIC_ROUTES.has(url) && !isAuthed(req)) {
     if (url.startsWith('/api/')) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
