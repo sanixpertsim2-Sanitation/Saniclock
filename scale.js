@@ -519,13 +519,20 @@ header{
 .head-in{max-width:1280px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .mark{
-  width:46px;height:46px;border-radius:13px;flex:none;display:grid;place-items:center;
+  width:58px;height:58px;border-radius:13px;flex:none;display:grid;place-items:center;
   background:transparent;
   box-shadow:none; color:#fff;
 }
 .mark svg{width:19px;height:19px}
 .wordmark{display:flex;flex-direction:column;line-height:1.05;min-width:0}
-.wordmark b{font-family:var(--serif);font-weight:600;font-size:22px;letter-spacing:.1px}
+.wordmark b{font-family:var(--serif);font-weight:600;font-size:28px;letter-spacing:.1px}
+.oclock{display:inline-grid;place-items:center;width:.76em;height:.76em;margin:0 .01em;vertical-align:-.07em;color:var(--text)}
+.oclock svg{width:100%;height:100%;display:block}
+.oclock .hh,.oclock .mh,.oclock .sh{transform-origin:20px 20px;transform-box:view-box}
+.oclock .hh{animation:ocSpin 43200s linear infinite}
+.oclock .mh{animation:ocSpin 3600s linear infinite}
+.oclock .sh{animation:ocSpin 60s linear infinite}
+@keyframes ocSpin{to{transform:rotate(360deg)}}
 .wordmark span{font-size:11.5px;color:var(--text-3);letter-spacing:.16em;text-transform:uppercase;font-weight:600}
 .spacer{flex:1}
 .live{
@@ -1001,6 +1008,13 @@ button:not([disabled]):active,.btn:active,.icon-btn:active,.seg:active,.fp-badge
 tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
 @keyframes rowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
+/* ---- cinematic dark backdrop (Canva artwork) + glass panels ---- */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) body{background-color:#07090f;background-image:linear-gradient(160deg,rgba(4,7,15,.74),rgba(4,7,15,.56) 55%,rgba(4,7,15,.70)),url("/stage-bg.jpg?v=1");background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat}
+  :root:not([data-theme="light"]) .kpi,:root:not([data-theme="light"]) .panel{background:rgba(13,16,22,.66);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+}
+:root[data-theme="dark"] body{background-color:#07090f;background-image:linear-gradient(160deg,rgba(4,7,15,.74),rgba(4,7,15,.56) 55%,rgba(4,7,15,.70)),url("/stage-bg.jpg?v=1");background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat}
+:root[data-theme="dark"] .kpi,:root[data-theme="dark"] .panel{background:rgba(13,16,22,.66);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -1009,7 +1023,7 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
   <div class="head-in">
     <div class="brand">
       <img class="mark" src="/brand-mark.png" alt="SaniClock" width="38" height="44" style="object-fit:contain"/>
-      <div class="wordmark"><b>SaniClock</b><span>Time &amp; Attendance</span></div>
+      <div class="wordmark"><b role="img" aria-label="SaniClock">SaniCl<span class="oclock" aria-hidden="true"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16.5" fill="none" stroke="currentColor" stroke-width="3.6"/><line class="hh" x1="20" y1="21" x2="20" y2="13" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line class="mh" x1="20" y1="21" x2="20" y2="9.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><line class="sh" x1="20" y1="22.5" x2="20" y2="8" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="20" r="2" fill="var(--accent)"/></svg></span>ck</b><span>Time &amp; Attendance</span></div>
     </div>
     <div class="spacer"></div>
     <div class="clock tnum" id="clock" aria-hidden="true">--:--:--</div>
@@ -2526,6 +2540,22 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
   if(box&&window.MutationObserver){new MutationObserver(scan).observe(box,{childList:true});}
   if(document.readyState!=="loading")setTimeout(scan,60);else document.addEventListener("DOMContentLoaded",function(){setTimeout(scan,60);});
   setTimeout(scan,700);
+})();
+
+/* ---- running clock inside the wordmark o ---- */
+(function(){
+  var oc=document.querySelector(".oclock svg");if(!oc)return;
+  var d=new Date(),sec=d.getSeconds(),mi=d.getMinutes()+sec/60,hr=(d.getHours()%12)+mi/60;
+  var hh=oc.querySelector(".hh"),mh=oc.querySelector(".mh"),sh=oc.querySelector(".sh");
+  if(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    hh.setAttribute("transform","rotate("+(hr*30)+" 20 20)");
+    mh.setAttribute("transform","rotate("+(mi*6)+" 20 20)");
+    sh.setAttribute("transform","rotate("+(sec*6)+" 20 20)");
+    return;
+  }
+  hh.style.animationDelay=(-hr*3600)+"s";
+  mh.style.animationDelay=(-mi*60)+"s";
+  sh.style.animationDelay=(-sec)+"s";
 })();
 </script>
 </body>
