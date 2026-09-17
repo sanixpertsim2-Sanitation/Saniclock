@@ -117,6 +117,7 @@ function getPage(token, page) {
 }
 const esc = (v) => String(v == null ? '' : v).replace(/["\r\n]/g, '').replace(/,/g, ' ').replace(/ {2,}/g, ' ').trim();
 
+const SCOPE_DEV = process.env.FERRERO_DEVICE || 'CCH5252300480';
 (async () => {
   const token = await ensureScoped();
   let page = 1, rows = [], total = null;
@@ -125,7 +126,7 @@ const esc = (v) => String(v == null ? '' : v).replace(/["\r\n]/g, '').replace(/,
     if (r.status === 401) throw new Error('Unexpected 401 after company switch');
     const j = r.json || {}; const data = (j.data && j.data.data) || [];
     if (total === null) total = (j.data && j.data.total) || 0;
-    for (const rec of data) rows.push([esc(rec.employee_code), esc(rec.employee_name || rec.employee_code), esc(rec.att_date), esc(rec.attendance_status), esc(rec.verify_type), '', esc(rec.punch_from)].join(','));
+    for (const rec of data) { if (SCOPE_DEV && String(rec.punch_from || '') !== SCOPE_DEV) continue; rows.push([esc(rec.employee_code), esc(rec.employee_name || rec.employee_code), esc(rec.att_date), esc(rec.attendance_status), esc(rec.verify_type), '', esc(rec.punch_from)].join(',')); }
     if (page * 100 >= total || data.length === 0) break; page++;
   }
   fs.writeFileSync(OUT, HEADER + '\n' + rows.join('\n') + '\n');
