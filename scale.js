@@ -125,7 +125,8 @@ function withApp(html) {
   const fac = (settingsStore.load().facilityName) || BASE.replace(/\//g, '');
   return String(html)
     .replace('apple-mobile-web-app-title" content="SaniClock"', 'apple-mobile-web-app-title" content="SaniClock ' + fac + '"')
-    .replace('<title>SaniClock ', '<title>SaniClock ' + fac + ' ');
+    .replace('<title>SaniClock ', '<title>SaniClock ' + fac + ' ')
+    .replace('rel="manifest" href="/manifest.webmanifest"', 'rel="manifest" href="/manifest.webmanifest?v=' + encodeURIComponent(fac.toLowerCase()) + '2"');
 }
 function withFlags(html) {
   if (!HIDE_VIEWS.length) return html;
