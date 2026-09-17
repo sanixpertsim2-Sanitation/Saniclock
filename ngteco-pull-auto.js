@@ -146,7 +146,9 @@ const toRow = (rec) => [esc(rec.employee_code), esc(rec.employee_name || rec.emp
   const ymd = (mdy) => { const p = String(mdy || '').split('/'); return p.length === 3 ? p[2] + '-' + p[0] + '-' + p[1] : ''; };
   let added = 0;
   for (const x of recs) { const k = x.id || (x.employee_code + '|' + x.punch_format_time); if (!store[k]) added++; store[k] = { employee_code: x.employee_code, employee_name: x.employee_name, att_date: x.att_date, attendance_status: x.attendance_status, verify_type: x.verify_type, punch_from: x.punch_from }; }
-  for (const k of Object.keys(store)) { const d = ymd(store[k].att_date); if (d && d < START) delete store[k]; }
+  // The API filters date_range in UTC, so a window starting 09/14 also returns 09/13 evening (EDT) rows; keep one day of slack.
+  const KEEP_FROM = daysAgo(4);
+  for (const k of Object.keys(store)) { const d = ymd(store[k].att_date); if (d && d < KEEP_FROM) delete store[k]; }
   fs.writeFileSync(STORE, JSON.stringify(store));
   const union = Object.values(store).sort((a, b) => (ymd(a.att_date) + ' ' + a.attendance_status).localeCompare(ymd(b.att_date) + ' ' + b.attendance_status));
   log('Fetched ' + fetched + '/' + total + ' account rows, ' + added + ' new; union in window ' + union.length);
