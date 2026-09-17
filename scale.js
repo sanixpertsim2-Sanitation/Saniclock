@@ -117,6 +117,13 @@ const { execFileSync } = require('child_process');
 const BASE = (process.env.BASE_PATH || '').replace(/\/+$/, '');
 const COOKIE = process.env.SESSION_COOKIE || 'sc_session';
 const CPATH = BASE ? BASE + '/' : '/';
+// HIDE_VIEWS=mend,absence,groups,devices,settings removes those sections from an instance
+// (nav entries dropped client-side, their APIs answer 404). Empty = full app.
+const HIDE_VIEWS = (process.env.HIDE_VIEWS || '').split(',').map(v => v.trim()).filter(Boolean);
+function withFlags(html) {
+  if (!HIDE_VIEWS.length) return html;
+  return String(html).replace(/<\/main>(\s*)<script>/, '</main>$1<script>window.HIDE_VIEWS=' + JSON.stringify(HIDE_VIEWS) + ';');
+}
 function withBase(html) {
   if (!BASE) return html;
   return String(html)
@@ -2421,7 +2428,7 @@ function renderTimecardView(){
   $("#tcCount2").textContent=rows.length+" row"+(rows.length===1?"":"s");
   if(!rows.length){$("#tcRows").innerHTML='<tr><td colspan="12"><div class="empty"><div class="t">No timecards found</div></div></td></tr>';return;}
   $("#tcRows").innerHTML=rows.map(function(r){
-    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':r.status==="in"?'<span class="dvPill ot">On floor</span>':'<span class="dvPill">Complete</span>';
+    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':isLive(r)?'<span class="dvPill ot">On floor</span>':r.status==="in"?'<span class="dvPill">Missing out</span>':'<span class="dvPill">Complete</span>';
     return '<tr>'+
       '<td class="dvName">'+esc(r.person||r.pid)+'</td>'+
       '<td><button class="btn-ghost" data-card="'+esc(r.pid)+'" data-name="'+esc(r.person||r.pid)+'" style="padding:4px 10px;font-size:12px;white-space:nowrap">Payroll card</button></td>'+
@@ -2657,6 +2664,10 @@ function closePayrollCard(){$("#cardOverlay").hidden=true;}
 $("#cardClose").addEventListener("click",closePayrollCard);
 $("#cardOverlay").addEventListener("click",function(e){if(e.target.id==="cardOverlay")closePayrollCard();});
 document.addEventListener("click",function(e){var b=(e.target&&e.target.closest)?e.target.closest("button[data-card]"):null;if(!b)return;openPayrollCard(b.getAttribute("data-card"),b.getAttribute("data-name")||b.getAttribute("data-card"));});
+(function(){var H=window.HIDE_VIEWS||[];if(!H.length)return;
+  H.forEach(function(v){document.querySelectorAll('.navItem[data-view="'+v+'"]').forEach(function(el){el.remove();});});
+  document.querySelectorAll('.navGroupLabel').forEach(function(l){var n=l.nextElementSibling;if(!n||n.classList.contains('navGroupLabel'))l.remove();});
+  if(H.indexOf(state.view)>=0)setView('dashboard');})();
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!$("#mendOverlay").hidden)closeMendModal();});
 $("#mendConfirm").addEventListener("click",submitMendPunch);
 $("#mendRows").addEventListener("click",function(e){var b=e.target.closest("button[data-act]");if(!b)return;decideMend(b.getAttribute("data-id"),b.getAttribute("data-act"));});
@@ -3096,7 +3107,7 @@ function loadToday(){
   j("/api/punches").then(function(d){
     PUNCH=(d.records||[]).filter(function(r){return r.date===latestDate(d.records)});
     var present=PUNCH.filter(function(r){return r.status==="done"||r.status==="in"}).length;
-    var onFloor=PUNCH.filter(function(r){return r.status==="in"}).length;
+    var _td=new Date(),_ts=("0"+(_td.getMonth()+1)).slice(-2)+"/"+("0"+_td.getDate()).slice(-2)+"/"+_td.getFullYear();var onFloor=PUNCH.filter(function(r){return r.status==="in"&&r.date===_ts}).length;
     var absent=PUNCH.filter(function(r){return r.status==="absent"}).length;
     var roster=PUNCH.length;
     $("#today").textContent=fmtDate(latestDate(d.records));
@@ -3243,6 +3254,11 @@ $("#test").addEventListener("click",function(){var b=this;b.disabled=true;msg("S
 
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
+  if (HIDE_VIEWS.length) {
+    const gated = { mend: ['/api/mend-punches'], absence: ['/api/absence-requests'], groups: ['/api/employees', '/api/ngteco/', '/api/mail/'], devices: ['/api/devices'], settings: ['/api/change-password'] };
+    for (const v of HIDE_VIEWS) for (const p of (gated[v] || [])) if (url === p || url.startsWith(p)) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'not available' })); return; }
+    if (HIDE_VIEWS.indexOf('settings') >= 0 && url === '/api/settings' && req.method !== 'GET') { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'not available' })); return; }
+  }
   // Employee self-service retired 2026-09-17 (employees use the NGTeco app). Admin view only.
   if (url === '/me' || url === '/me/' || url === '/manifest-me.webmanifest' || url === '/api/emp-login' || url === '/api/emp-logout' || url === '/api/emp-change-password' || url === '/api/my-punches' || url === '/api/my-absence-requests' || url === '/api/mail/invite') { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'not available' })); return; }
 
@@ -3985,7 +4001,7 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/' || url === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(withBase(page()));
+    res.end(withBase(withFlags(page())));
     return;
   }
   res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
