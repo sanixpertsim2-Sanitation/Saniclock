@@ -1735,7 +1735,10 @@ function isLive(r){return liveElapsed(r)!=null;}
 function isMissingOut(r){return r.status==="in"&&!isLive(r);}   // open but not live => missing clock-out
 /* Punch-out missed: clocked in (within the live window), still open, and the shift has ended. */
 var BAND_END={Day:900,Afternoon:1380,Night:420},OVERDUE_GRACE_MS=30*60000;
-function shiftEndMs(r){var dp=parseDate(r.date);if(!dp)return null;var b=catOf(r.shift,r);var end=BAND_END[b];if(end==null)return null;var ms=new Date(dp.getFullYear(),dp.getMonth(),dp.getDate(),0,0,0).getTime()+end*60000;if(b==="Night")ms+=86400000;return ms;}
+/* Band for the overdue rule comes from the clock-in TIME (roster labels can be stale):
+   04:00-11:59 Day, 12:00-19:59 Afternoon, otherwise Night. */
+function bandByClockIn(r){var m=(typeof r.clockInMin==="number")?r.clockInMin:null;if(m==null){var t=String(r.clockIn||"").split(":");if(t.length>=2)m=(+t[0]||0)*60+(+t[1]||0);}if(m==null)return catOf(r.shift,r);if(m>=240&&m<720)return "Day";if(m>=720&&m<1200)return "Afternoon";return "Night";}
+function shiftEndMs(r){var dp=parseDate(r.date);if(!dp)return null;var b=bandByClockIn(r);var end=BAND_END[b];if(end==null)return null;var ms=new Date(dp.getFullYear(),dp.getMonth(),dp.getDate(),0,0,0).getTime()+end*60000;var cm=(typeof r.clockInMin==="number")?r.clockInMin:1200;if(b==="Night"&&cm>=240)ms+=86400000;return ms;}
 function isOverdueOut(r){if(r.status!=="in")return false;var ms=clockInMs(r);if(ms==null)return false;var age=Date.now()-ms;if(age<0||age>=MAX_LIVE_MS)return false;var end=shiftEndMs(r);if(end==null)return false;return Date.now()>=end+OVERDUE_GRACE_MS;}
 function overdueBy(r){var end=shiftEndMs(r);var m=end?Math.max(0,Math.round((Date.now()-end)/60000)):0;return Math.floor(m/60)+"h "+(m%60)+"m";}
 
