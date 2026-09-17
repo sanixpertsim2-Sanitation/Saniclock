@@ -387,7 +387,10 @@ function loadLiveData() {
   for (const pid in tally) { let best = '', n = -1; for (const k in tally[pid]) if (tally[pid][k] > n) { n = tally[pid][k]; best = k; } usual[pid] = best; }
   for (const r of records) {
     if (r.status !== 'in' || r.clockOut) continue;
-    const m = (typeof r.clockInMin === 'number') ? r.clockInMin : null; if (m == null) continue;
+    // clockInMin only exists after enrichAll; parse the HH:MM string here like the timesheet block above.
+    let m = (typeof r.clockInMin === 'number') ? r.clockInMin : null;
+    if (m == null && r.clockIn) { const t = String(r.clockIn).split(':'); if (t.length >= 2) m = (+t[0] || 0) * 60 + (+t[1] || 0); }
+    if (m == null) continue;
     const U = usual[r.pid] || normShift(r.rosterShift || ''); if (!U || SH_START[U] == null) continue;
     const dS = cdist(m, SH_START[U]), dE = cdist(m, SH_END[U]);
     if (dE < dS && dE <= 240) { r.missingIn = true; r.shift = U; }
