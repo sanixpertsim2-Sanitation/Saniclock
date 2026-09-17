@@ -3169,6 +3169,8 @@ $("#test").addEventListener("click",function(){var b=this;b.disabled=true;msg("S
 
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
+  // Employee self-service retired 2026-09-17 (employees use the NGTeco app). Admin view only.
+  if (url === '/me' || url === '/me/' || url === '/manifest-me.webmanifest' || url === '/api/emp-login' || url === '/api/emp-logout' || url === '/api/emp-change-password' || url === '/api/my-punches' || url === '/api/my-absence-requests' || url === '/api/mail/invite') { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'not available' })); return; }
 
   // ---- Auth gate: everything except the login surface requires a session ----
   const PUBLIC_ROUTES = new Set(['/login', '/api/login', '/api/logout', '/favicon.ico', '/manifest.webmanifest', '/sw.js', '/icon.svg', '/icon-180.png', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/login-bg.jpg', '/stage-bg.jpg', '/stage-bg.png', '/brand-badge.png', '/brand-flame.png', '/brand-white.png', '/brand-mark.png', '/api/emp-login', '/api/emp-logout', '/api/my-punches', '/api/my-absence-requests', '/api/emp-change-password', '/me', '/manifest-me.webmanifest']);
@@ -3627,7 +3629,7 @@ const server = http.createServer((req, res) => {
           else { await ngteco.deleteEmployee(_tok, _p.id); const _r = await ngteco.pushEmployee(_tok, rec); ngteco_push = _r.ok ? 'renamed' : ('failed: ' + _r.message); }
         }
       } catch (_e) { ngteco_push = "failed: " + _e.message; console.error("[emp-push-error] pid=" + rec.pid + " person=" + rec.person + " -> " + _e.stack); }
-      res.writeHead(200, { 'Content-Type': 'application/json' }); let tempPassword = null; let mailed = false; if (!editingId && rec.email) { try { tempPassword = empAuth.genPassword(); empAuth.setCredential(rec.pid, rec.email, tempPassword); } catch (_e) {} try { if (tempPassword && mailer.configured()) { const _link = 'https://saniclock.anubhavflow.com/me?install=1'; await mailer.send(rec.email, 'Your SaniClock timesheet login', mailer.inviteHtml(rec.person, rec.email, tempPassword, _link), mailer.inviteText(rec.person, rec.email, tempPassword, _link)); mailed = true; } } catch (_e) { console.error('[emp-invite-mail] ' + rec.pid + ' -> ' + _e.message); } } res.end(JSON.stringify({ ok: true, item: rec, ngteco: ngteco_push, tempPassword: tempPassword, mailed: mailed }));
+      res.writeHead(200, { 'Content-Type': 'application/json' }); let tempPassword = null; let mailed = false; if (false && !editingId && rec.email) { try { tempPassword = empAuth.genPassword(); empAuth.setCredential(rec.pid, rec.email, tempPassword); } catch (_e) {} try { if (tempPassword && mailer.configured()) { const _link = 'https://saniclock.anubhavflow.com/me?install=1'; await mailer.send(rec.email, 'Your SaniClock timesheet login', mailer.inviteHtml(rec.person, rec.email, tempPassword, _link), mailer.inviteText(rec.person, rec.email, tempPassword, _link)); mailed = true; } } catch (_e) { console.error('[emp-invite-mail] ' + rec.pid + ' -> ' + _e.message); } } res.end(JSON.stringify({ ok: true, item: rec, ngteco: ngteco_push, tempPassword: tempPassword, mailed: mailed }));
     }).catch((e) => { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: e.message })); });
     return;
   }
