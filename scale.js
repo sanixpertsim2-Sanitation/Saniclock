@@ -1345,13 +1345,15 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
         <svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.6-3.6"/></svg>
         <input id="tcQ" type="search" placeholder="Search by Person ID / Person Name…" autocomplete="off" spellcheck="false"/>
       </div>
+      <input id="tcDate" type="date" title="Filter by date" style="height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);padding:0 8px;font-size:13px"/>
+      <select id="tcPeriod" title="Payroll period" style="height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);padding:0 8px;font-size:13px"><option value="">All dates</option><option value="cur">Current payroll</option><option value="prev">Previous payroll</option></select>
       <span class="dvPill" id="tcCount2">0 rows</span>
       <div class="grow"></div>
       <button class="btn-ghost" id="tcRefresh">Refresh</button>
     </div>
     <div class="dvWrap">
       <table class="dvTable">
-        <thead><tr><th>Person Name</th><th>Person ID</th><th>Date</th><th>Timesheet</th><th>Clock In</th><th>Clock Out</th><th>Total Work Time</th><th>Total Overtime</th><th>Total Time</th><th>Total Break</th><th>Status</th></tr></thead>
+        <thead><tr><th class="sortable" data-k="person" style="cursor:pointer;user-select:none">Person Name</th><th class="sortable" data-k="pid" style="cursor:pointer;user-select:none">Person ID</th><th class="sortable" data-k="date" style="cursor:pointer;user-select:none">Date</th><th class="sortable" data-k="shift" style="cursor:pointer;user-select:none">Timesheet</th><th class="sortable" data-k="clockIn" style="cursor:pointer;user-select:none">Clock In</th><th class="sortable" data-k="clockOut" style="cursor:pointer;user-select:none">Clock Out</th><th class="sortable" data-k="workMin" style="cursor:pointer;user-select:none">Total Work Time</th><th class="sortable" data-k="otMin" style="cursor:pointer;user-select:none">Total Overtime</th><th class="sortable" data-k="totalMin" style="cursor:pointer;user-select:none">Total Time</th><th class="sortable" data-k="breakMin" style="cursor:pointer;user-select:none">Total Break</th><th class="sortable" data-k="status" style="cursor:pointer;user-select:none">Status</th></tr></thead>
         <tbody id="tcRows"></tbody>
       </table>
     </div>
@@ -1367,13 +1369,15 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
         <svg class="si" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.6-3.6"/></svg>
         <input id="rpQ" type="search" placeholder="Search by Person ID / Person Name…" autocomplete="off" spellcheck="false"/>
       </div>
+      <input id="rpDate" type="date" title="Filter by date" style="height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);padding:0 8px;font-size:13px"/>
+      <select id="rpPeriod" title="Payroll period" style="height:34px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);padding:0 8px;font-size:13px"><option value="">All dates</option><option value="cur">Current payroll</option><option value="prev">Previous payroll</option></select>
       <span class="dvPill" id="rpCount">0 employees</span>
       <div class="grow"></div>
       <button class="btn-ghost" id="rpRefresh">Refresh</button>
     </div>
     <div class="dvWrap">
       <table class="dvTable">
-        <thead><tr><th>Person ID</th><th>Person Name</th><th>Days Worked</th><th>Days Absent</th><th>Total Break Hour(s)</th><th>Total Work Hour(s)</th><th>Total Overtime Hour(s)</th><th>Total Hour(s)</th></tr></thead>
+        <thead><tr><th class="sortable" data-k="pid" style="cursor:pointer;user-select:none">Person ID</th><th class="sortable" data-k="person" style="cursor:pointer;user-select:none">Person Name</th><th class="sortable" data-k="worked" style="cursor:pointer;user-select:none">Days Worked</th><th class="sortable" data-k="breakMin" style="cursor:pointer;user-select:none">Total Break Hour(s)</th><th class="sortable" data-k="workMin" style="cursor:pointer;user-select:none">Total Work Hour(s)</th><th class="sortable" data-k="otMin" style="cursor:pointer;user-select:none">Total Overtime Hour(s)</th><th class="sortable" data-k="total" style="cursor:pointer;user-select:none">Total Hour(s)</th></tr></thead>
         <tbody id="rpRows"></tbody>
       </table>
     </div>
@@ -2367,24 +2371,29 @@ function renderViewPunch(){
 }
 
 /* ================= Timecard Management (paired, NGTeco-style columns) ================= */
+function ymdOf(mdy){if(!mdy)return 0;var p=String(mdy).split("/");if(p.length!==3)return 0;return (+p[2])*10000+(+p[0])*100+(+p[1]);}
+function ymdOfDate(d){return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();}
+function biweekPeriods(){var anchor=new Date(2026,8,7);var t=new Date();t.setHours(0,0,0,0);var ms=864e5,stride=14*ms;var k=Math.floor((t-anchor)/stride);var cs=new Date(anchor.getTime()+k*stride);var ce=new Date(cs.getTime()+13*ms);var ps=new Date(cs.getTime()-14*ms);var pe=new Date(cs.getTime()-ms);return {cur:{s:ymdOfDate(cs),e:ymdOfDate(ce)},prev:{s:ymdOfDate(ps),e:ymdOfDate(pe)}};}
+function periodRange(sel){if(!sel)return null;var P=biweekPeriods();return sel==="cur"?P.cur:(sel==="prev"?P.prev:null);}
+function inRange(r,dateVal,periodSel){var y=ymdOf(r.date);if(dateVal){if(y!==(+dateVal.replace(/-/g,"")))return false;}var pr=periodRange(periodSel);if(pr){if(y<pr.s||y>pr.e)return false;}return true;}
+var TCSORT={k:"person",dir:1},RPSORT={k:"person",dir:1};
+function sortKeyVal(o,k){if(k==="date")return ymdOf(o.date);if(k==="totalMin")return (o.workMin||0)+30;if(k==="breakMin")return (o.breakMin!=null?o.breakMin:(o.status==="done"?30:0));if(k==="total")return (o.total!=null?o.total:0);if(k==="workMin"||k==="otMin"||k==="worked")return o[k]||0;return String(o[k]==null?"":o[k]).toLowerCase();}
+function applySort(rows,st){return rows.slice().sort(function(a,b){var va=sortKeyVal(a,st.k),vb=sortKeyVal(b,st.k);if(va<vb)return -1*st.dir;if(va>vb)return 1*st.dir;return String(a.person||"").localeCompare(String(b.person||""));});}
+
 function renderTimecardView(){
   var q=($("#tcQ").value||"").toLowerCase();
+  var dv=($("#tcDate")&&$("#tcDate").value)||"";
+  var ps=($("#tcPeriod")&&$("#tcPeriod").value)||"";
   var rows=(DATA.records||[]).filter(function(r){
+    if(!inRange(r,dv,ps))return false;
     if(!q)return true;
     return (r.pid||"").toLowerCase().indexOf(q)>=0||(r.person||"").toLowerCase().indexOf(q)>=0;
-  }).slice().sort(function(a,b){
-    if(a.person!==b.person)return String(a.person).localeCompare(String(b.person));
-    return String(b.date).localeCompare(String(a.date));
   });
+  rows=applySort(rows,TCSORT);
   $("#tcCount2").textContent=rows.length+" row"+(rows.length===1?"":"s");
-  if(!rows.length){
-    $("#tcRows").innerHTML='<tr><td colspan="11"><div class="empty"><div class="t">No timecards found</div></div></td></tr>';
-    return;
-  }
+  if(!rows.length){$("#tcRows").innerHTML='<tr><td colspan="11"><div class="empty"><div class="t">No timecards found</div></div></td></tr>';return;}
   $("#tcRows").innerHTML=rows.map(function(r){
-    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':
-      r.status==="in"?'<span class="dvPill ot">On floor</span>':
-      '<span class="dvPill">Complete</span>';
+    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':r.status==="in"?'<span class="dvPill ot">On floor</span>':'<span class="dvPill">Complete</span>';
     return '<tr>'+
       '<td class="dvName">'+esc(r.person||r.pid)+'</td>'+
       '<td class="tnum">'+esc(r.pid)+'</td>'+
@@ -2403,34 +2412,33 @@ function renderTimecardView(){
 /* ================= Attendance Report (period totals per employee) ================= */
 function renderReportView(){
   var q=($("#rpQ").value||"").toLowerCase();
+  var dv=($("#rpDate")&&$("#rpDate").value)||"";
+  var ps=($("#rpPeriod")&&$("#rpPeriod").value)||"";
   var byPid={};
   (DATA.records||[]).forEach(function(r){
     if(!r.pid)return;
-    if(!byPid[r.pid])byPid[r.pid]={pid:r.pid,person:r.person||r.pid,worked:0,absent:0,workMin:0,otMin:0};
+    if(!inRange(r,dv,ps))return;
+    if(!byPid[r.pid])byPid[r.pid]={pid:r.pid,person:r.person||r.pid,worked:0,workMin:0,otMin:0};
     var g=byPid[r.pid];
-    if(r.status==="absent"){g.absent++;return;}
     if(r.status==="done"||r.status==="in"){g.worked++;g.workMin+=(r.workMin||0);g.otMin+=(r.otMin||0);}
   });
   var rows=Object.keys(byPid).map(function(k){return byPid[k];}).filter(function(g){
     if(!q)return true;
     return g.pid.toLowerCase().indexOf(q)>=0||g.person.toLowerCase().indexOf(q)>=0;
-  }).sort(function(a,b){return a.person.localeCompare(b.person);});
+  });
+  rows.forEach(function(g){g.breakMin=g.worked*30;g.total=g.workMin+g.breakMin;});
+  rows=applySort(rows,RPSORT);
   $("#rpCount").textContent=rows.length+" employee"+(rows.length===1?"":"s");
-  if(!rows.length){
-    $("#rpRows").innerHTML='<tr><td colspan="8"><div class="empty"><div class="t">No data</div></div></td></tr>';
-    return;
-  }
+  if(!rows.length){$("#rpRows").innerHTML='<tr><td colspan="7"><div class="empty"><div class="t">No data</div></div></td></tr>';return;}
   $("#rpRows").innerHTML=rows.map(function(g){
-    var breakMin=g.worked*30;
     return '<tr>'+
       '<td class="tnum">'+esc(g.pid)+'</td>'+
       '<td class="dvName">'+esc(g.person)+'</td>'+
       '<td class="tnum">'+g.worked+'</td>'+
-      '<td class="tnum">'+g.absent+'</td>'+
-      '<td class="tnum">'+hhmm(breakMin)+'</td>'+
+      '<td class="tnum">'+hhmm(g.breakMin)+'</td>'+
       '<td class="tnum">'+hhmm(g.workMin)+'</td>'+
       '<td class="tnum">'+(g.otMin?'<span class="dvPill ot">'+hhmm(g.otMin)+'</span>':hhmm(0))+'</td>'+
-      '<td class="tnum" style="font-weight:700;color:var(--text)">'+hhmm(g.workMin+breakMin)+'</td>'+
+      '<td class="tnum" style="font-weight:700;color:var(--text)">'+hhmm(g.total)+'</td>'+
     '</tr>';}).join("");
 }
 
@@ -2588,6 +2596,9 @@ $("#tcQ").addEventListener("input",renderTimecardView);
 $("#tcRefresh").addEventListener("click",function(){load(true).then(renderTimecardView);});
 $("#rpQ").addEventListener("input",renderReportView);
 $("#rpRefresh").addEventListener("click",function(){load(true).then(renderReportView);});
+["tcDate","tcPeriod"].forEach(function(id){var el=$("#"+id);if(el)el.addEventListener("change",renderTimecardView);});
+["rpDate","rpPeriod"].forEach(function(id){var el=$("#"+id);if(el)el.addEventListener("change",renderReportView);});
+document.addEventListener("click",function(e){var th=(e.target&&e.target.closest)?e.target.closest("th.sortable"):null;if(!th)return;var k=th.getAttribute("data-k");if(!k)return;if(th.closest("#timecardView")){if(TCSORT.k===k)TCSORT.dir=-TCSORT.dir;else{TCSORT.k=k;TCSORT.dir=1;}renderTimecardView();}else if(th.closest("#reportView")){if(RPSORT.k===k)RPSORT.dir=-RPSORT.dir;else{RPSORT.k=k;RPSORT.dir=1;}renderReportView();}});
 $("#sidebarToggle").addEventListener("click",function(){
   $("#sidebar").classList.toggle("open");$("#sidebarScrim").classList.toggle("open");
 });
