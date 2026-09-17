@@ -2441,7 +2441,7 @@ function renderEmployees(){
       '<td>'+(e.shift?esc(e.shift):'<span class="z">—</span>')+'</td>'+
       '<td>'+(e.email?esc(e.email):'<span class="z">—</span>')+'</td>'+
       '<td>'+esc(e.role||"Normal user")+'</td>'+'<td><button class="fp-badge '+(e.fpEnrolled?'fp-on':'fp-off')+'" data-eact="fp" data-id="'+esc(e.id)+'" title="Fingerprint is enrolled on the TC4 device. Click to update.">'+(e.fpEnrolled?'&#10003; Enrolled':'Not enrolled')+'</button></td>'+
-      '<td><div class="mend-actions">'+(e.email?'<button class="approve" data-eact="email" data-id="'+esc(e.id)+'" title="Email their login">Email</button>':'')+'<button class="approve" data-eact="edit" data-id="'+esc(e.id)+'">Edit</button><button class="del" data-eact="delete" data-id="'+esc(e.id)+'">Delete</button></div></td>'+
+      '<td><div class="mend-actions">'+'<button class="approve" data-eact="edit" data-id="'+esc(e.id)+'">Edit</button><button class="del" data-eact="delete" data-id="'+esc(e.id)+'">Delete</button></div></td>'+
     '</tr>';}).join("");
 }
 function openEmpModal(rec){
@@ -2912,7 +2912,7 @@ body .kpi,body .row{background:rgba(15,18,24,.55);backdrop-filter:blur(10px);-we
   <div class="fld"><label for="eqPid">Person ID</label><input id="eqPid" placeholder="e.g. 42" autocomplete="off"/></div>
   <div class="fld"><label for="eqName">Full name</label><input id="eqName" placeholder="First Last" autocomplete="off"/></div>
   <div class="fld"><label for="eqDept">Department</label><input id="eqDept" placeholder="Ferrero / DC Plant" value="Ferrero" autocomplete="off"/></div>
-  <div class="fld"><label for="eqEmail">Email (optional — sends app invite)</label><input id="eqEmail" type="email" placeholder="name@sanixperts.ca" autocomplete="off"/></div>
+  <div class="fld"><label for="eqEmail">Email (optional)</label><input id="eqEmail" type="email" placeholder="name@sanixperts.ca" autocomplete="off"/></div>
   <div class="msg" id="eqMsg"></div>
   <button class="btn" id="eqSave">Add employee</button>
   <button class="btn ghost" id="eqCancel">Cancel</button>
