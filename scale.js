@@ -374,6 +374,24 @@ function loadLiveData() {
     if (m != null) r.shift = bucket(m);
     else if (/morning|day/i.test(r.rosterShift)) r.shift = 'Day';
   }
+  // Punch-in missed: a lone punch that lands near the END of the person's usual timesheet is really their
+  // clock-out (the clock-in was missed). Usual timesheet = majority of their completed shifts in the window,
+  // falling back to the roster label. Boundaries coincide (15:00 ends Day and starts Afternoon), so the
+  // person's usual shift, not the time alone, decides.
+  const SH_START = { Day: 420, Afternoon: 900, Night: 1380 }, SH_END = { Day: 900, Afternoon: 1380, Night: 420 };
+  const normShift = v => /night/i.test(v) ? 'Night' : (/after/i.test(v) ? 'Afternoon' : (/morning|day/i.test(v) ? 'Day' : ''));
+  const cdist = (a, b) => { const d = Math.abs(a - b) % 1440; return Math.min(d, 1440 - d); };
+  const tally = {};
+  for (const r of records) if (r.status === 'done' && r.pid && r.shift) { const t = tally[r.pid] = tally[r.pid] || {}; t[r.shift] = (t[r.shift] || 0) + 1; }
+  const usual = {};
+  for (const pid in tally) { let best = '', n = -1; for (const k in tally[pid]) if (tally[pid][k] > n) { n = tally[pid][k]; best = k; } usual[pid] = best; }
+  for (const r of records) {
+    if (r.status !== 'in' || r.clockOut) continue;
+    const m = (typeof r.clockInMin === 'number') ? r.clockInMin : null; if (m == null) continue;
+    const U = usual[r.pid] || normShift(r.rosterShift || ''); if (!U || SH_START[U] == null) continue;
+    const dS = cdist(m, SH_START[U]), dE = cdist(m, SH_END[U]);
+    if (dE < dS && dE <= 240) { r.missingIn = true; r.shift = U; }
+  }
   const dates = [...new Set(records.map(r => r.date).filter(Boolean))].sort((a, b) => {
     const pa = a.split('/'), pb = b.split('/');
     return new Date(+pb[2], +pb[0] - 1, +pb[1]) - new Date(+pa[2], +pa[0] - 1, +pa[1]);
@@ -401,6 +419,7 @@ function buildPayload() {
     const sm = integrity.shiftMismatch(e); if (sm) fl.push(sm);
     const rd = integrity.roundingAudit(e); if (rd) fl.push(rd);
     e.flags = fl.map(f => ({ code: f.code, severity: f.severity, message: f.message }));
+    if (e.missingIn) { e.flags = e.flags.filter(f => f.code !== 'MISSING_OUT'); e.flags.push({ code: 'MISSING_IN', severity: 'warn', message: 'Clock-out with no clock-in (punch-in missed).' }); e.missingOut = false; }
     e.shiftFamily = timeEngine.catOf(e.shift); // canonical from lib/time-engine.js
     // Live mode: the raw punch stream has no NGTeco timecard totals — fill them
     // from our own engine so every screen shows hours (work=net, total=net+break).
@@ -1293,6 +1312,14 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
     <div id="overdueList" class="overdue-list"></div>
   </section>
 
+  <section id="missinSec" hidden>
+    <div class="sec-head">
+      <h2>Punch-in missed</h2><span class="count-badge" id="missinCount">0</span>
+      <span class="hint">A clock-out was recorded at the end of their usual shift, but no clock-in</span>
+    </div>
+    <div id="missinList" class="overdue-list"></div>
+  </section>
+
   <section>
     <div class="sec-head">
       <h2>Timecards</h2><span class="count-badge" id="tcCount">0</span>
@@ -1304,6 +1331,7 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
           <button class="seg active" data-seg="all">All <span class="n" id="c-all">0</span></button>
           <button class="seg" data-seg="live">On floor <span class="n" id="c-live">0</span></button>
           <button class="seg exc" data-seg="overdue">Punch-out missed <span class="n" id="c-overdue">0</span></button>
+          <button class="seg exc" data-seg="missin">Punch-in missed <span class="n" id="c-missin">0</span></button>
           <button class="seg" data-seg="done">Completed <span class="n" id="c-done">0</span></button>
           <button class="seg exc" data-seg="exception">Exceptions <span class="n" id="c-exc">0</span></button>
         </div>
@@ -1737,31 +1765,31 @@ function clockInMs(r){var dp=parseDate(r.date);if(!dp)return null;
 var MAX_LIVE_MS=16*3600*1000;
 // returns elapsed ms if the punch is *plausibly live*, else null
 function liveElapsed(r){
-  if(r.status!=="in")return null;
+  if(r.status!=="in"||r.missingIn)return null;
   if(!sameAsRealToday(r.date))return null;      // not the real current local date
   var ms=clockInMs(r);if(ms==null)return null;
   var e=Date.now()-ms;
   if(e<0||e>=MAX_LIVE_MS)return null;           // impossible / stale (>16h)
   return e;}
 function isLive(r){return liveElapsed(r)!=null;}
-function isMissingOut(r){return r.status==="in"&&!isLive(r);}   // open but not live => missing clock-out
+function isMissingOut(r){return r.status==="in"&&!r.missingIn&&!isLive(r);}   // open but not live => missing clock-out
 /* Punch-out missed: clocked in (within the live window), still open, and the shift has ended. */
 var BAND_END={Day:900,Afternoon:1380,Night:420},OVERDUE_GRACE_MS=30*60000;
 /* Band for the overdue rule comes from the clock-in TIME (roster labels can be stale):
    04:00-11:59 Day, 12:00-19:59 Afternoon, otherwise Night. */
 function bandByClockIn(r){var m=(typeof r.clockInMin==="number")?r.clockInMin:null;if(m==null){var t=String(r.clockIn||"").split(":");if(t.length>=2)m=(+t[0]||0)*60+(+t[1]||0);}if(m==null)return catOf(r.shift,r);if(m>=240&&m<720)return "Day";if(m>=720&&m<1200)return "Afternoon";return "Night";}
 function shiftEndMs(r){var dp=parseDate(r.date);if(!dp)return null;var b=bandByClockIn(r);var end=BAND_END[b];if(end==null)return null;var ms=new Date(dp.getFullYear(),dp.getMonth(),dp.getDate(),0,0,0).getTime()+end*60000;var cm=(typeof r.clockInMin==="number")?r.clockInMin:1200;if(b==="Night"&&cm>=240)ms+=86400000;return ms;}
-function isOverdueOut(r){if(r.status!=="in")return false;var ms=clockInMs(r);if(ms==null)return false;var age=Date.now()-ms;if(age<0||age>=MAX_LIVE_MS)return false;var end=shiftEndMs(r);if(end==null)return false;return Date.now()>=end+OVERDUE_GRACE_MS;}
+function isOverdueOut(r){if(r.status!=="in"||r.missingIn)return false;var ms=clockInMs(r);if(ms==null)return false;var age=Date.now()-ms;if(age<0||age>=MAX_LIVE_MS)return false;var end=shiftEndMs(r);if(end==null)return false;return Date.now()>=end+OVERDUE_GRACE_MS;}
 function overdueBy(r){var end=shiftEndMs(r);var m=end?Math.max(0,Math.round((Date.now()-end)/60000)):0;return Math.floor(m/60)+"h "+(m%60)+"m";}
 
 /* ---- Phase-1 flags (from our engine, delivered per-record) ---- */
-var FCODE={MISSING_OUT:"MISSING",MEAL_PERIOD:"MEAL",OUT_BEFORE_IN:"OUT<IN",SUB_MINUTE_SHIFT:"SUB-MIN",
+var FCODE={MISSING_OUT:"MISSING",MISSING_IN:"MISSING",MEAL_PERIOD:"MEAL",OUT_BEFORE_IN:"OUT<IN",SUB_MINUTE_SHIFT:"SUB-MIN",
   IMPLAUSIBLE_LENGTH:"LONG",OUTSIDE_WINDOW:"WINDOW",DUPLICATE_PUNCH:"DUP",OVERLAPPING_SHIFT:"OVERLAP",
   ROUNDING_UNFAVORABLE:"ROUND",ABNORMAL:"ABN",
   ESA_REST_11HR:"11H-REST",ESA_REST_24HR:"24H-REST",SHIFT_MISMATCH:"SHIFT≠IN"};
 function fPrefix(code){return FCODE[code]||String(code||"").replace(/_/g,"·");}
 function fBucket(code){
-  if(code==="MISSING_OUT")return "missing";
+  if(code==="MISSING_OUT"||code==="MISSING_IN")return "missing";
   if(code==="MEAL_PERIOD")return "meal";
   if(code==="ROUNDING_UNFAVORABLE")return "rounding";
   return "anomaly";}
@@ -2049,6 +2077,7 @@ function filterBase(recs){ // shift + search only (used by floor / exceptions / 
 function segMatch(r){
   if(state.seg==="live")return isLive(r);
   if(state.seg==="overdue")return isOverdueOut(r);
+  if(state.seg==="missin")return !!r.missingIn;
   if(state.seg==="done")return r.status==="done";
   if(state.seg==="exception")return isException(r);
   return true;}
@@ -2062,6 +2091,7 @@ function sortRecs(recs){
     if(va<vb)return -1*dir;if(va>vb)return 1*dir;return String(a.person).localeCompare(String(b.person));});
   return arr;}
 function statusPill(r){
+  if(r.missingIn)return '<span class="pill overdue"><span class="d"></span>Punch-in missed</span>';
   if(isOverdueOut(r))return '<span class="pill overdue"><span class="d"></span>Punch-out missed</span>';
   if(isLive(r))return '<span class="pill in"><span class="d"></span>On shift</span>';
   if(isMissingOut(r))return '<span class="pill warn"><span class="d"></span>Missing out</span>';
@@ -2069,23 +2099,23 @@ function statusPill(r){
   return '<span class="pill absent"><span class="d"></span>Absent</span>';}
 function renderTable(recs){
   var base=filterBase(recs);
-  var cnt={all:base.length,live:0,done:0,exc:0,overdue:0};
-  base.forEach(function(r){if(isLive(r))cnt.live++;if(isOverdueOut(r))cnt.overdue++;if(r.status==="done")cnt.done++;if(isException(r))cnt.exc++;});
-  $("#c-all").textContent=cnt.all;$("#c-live").textContent=cnt.live;$("#c-done").textContent=cnt.done;$("#c-exc").textContent=cnt.exc;var co=$("#c-overdue");if(co)co.textContent=cnt.overdue;
+  var cnt={all:base.length,live:0,done:0,exc:0,overdue:0,missin:0};
+  base.forEach(function(r){if(isLive(r))cnt.live++;if(isOverdueOut(r))cnt.overdue++;if(r.missingIn)cnt.missin++;if(r.status==="done")cnt.done++;if(isException(r))cnt.exc++;});
+  $("#c-all").textContent=cnt.all;$("#c-live").textContent=cnt.live;$("#c-done").textContent=cnt.done;$("#c-exc").textContent=cnt.exc;var co=$("#c-overdue");if(co)co.textContent=cnt.overdue;var cm=$("#c-missin");if(cm)cm.textContent=cnt.missin;
   var rows=sortRecs(visible(recs));
   $("#tcCount").textContent=rows.length;
   if(!rows.length){$("#rows").innerHTML='<tr><td colspan="10"><div class="empty">'+
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-3.6-3.6"/></svg>'+
     '<div class="t">No timecards match</div><div>Try clearing the search, shift, or status filter.</div></div></td></tr>';return;}
-  $("#rows").innerHTML=rows.map(function(r){var k=catOf(r.shift,r);
+  $("#rows").innerHTML=rows.map(function(r){var k=catOf(r.shift,r);var ci=r.missingIn?"":r.clockIn,co=r.missingIn?r.clockIn:r.clockOut;
     var warn=(r.abnormal&&!isMissingOut(r))?'<span class="flag" title="'+esc(r.abnormal)+'">! '+esc(r.abnormal)+'</span>':'';
     var payable=(typeof r.netMin==="number")?'<b>'+hmShort(r.netMin)+'</b>':'<span class="z">—</span>';
     var night=(typeof r.nightMin==="number"&&r.nightMin>0)?'<span class="ndot"></span>'+hmShort(r.nightMin):'<span class="z">—</span>';
-    return '<tr'+(isOverdueOut(r)?' class="overdue"':'')+'>'+
+    return '<tr'+((isOverdueOut(r)||r.missingIn)?' class="overdue"':'')+'>'+
       '<td class="cell-emp" data-label="Employee"><div class="emp"><span class="dot" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><div><div class="en">'+esc(r.person||"—")+'</div>'+(r.pid?'<div class="ep">'+esc(r.pid)+'</div>':'')+'</div>'+warn+'</div></td>'+
       '<td data-label="Shift"><span class="shiftcell"><span class="sdot" style="background:'+cv(k)+'"></span><span class="shift-tag">'+esc(r.shift||k)+'</span></span></td>'+
-      '<td class="r'+(r.clockIn?"":" z")+'" data-label="Clock in">'+(r.clockIn?esc(clk(r.clockIn)):"—")+'</td>'+
-      '<td class="r'+(r.clockOut?"":" z")+'" data-label="Clock out">'+(r.clockOut?esc(clk(r.clockOut)):"—")+'</td>'+
+      '<td class="r'+(ci?"":" z")+'" data-label="Clock in">'+(ci?esc(clk(ci)):"—")+'</td>'+
+      '<td class="r'+(co?"":" z")+'" data-label="Clock out">'+(co?esc(clk(co)):"—")+'</td>'+
       '<td class="r payable" data-label="Payable">'+payable+'</td>'+
       '<td class="r z" data-label="Worked · CSV">'+hmShort(r.workMin)+'</td>'+
       '<td class="r z" data-label="OT · CSV">'+hmShort(r.otMin)+'</td>'+
@@ -2117,7 +2147,9 @@ function renderDates(){
 function renderOverdue(){var sec=$("#overdueSec");if(!sec)return;var list=(DATA.records||[]).filter(isOverdueOut);
   sec.hidden=!list.length;$("#overdueCount").textContent=list.length;
   $("#overdueList").innerHTML=list.map(function(r){var k=catOf(r.shift,r);
-    return '<div class="overdue-item"><span class="av" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><strong>'+esc(r.person||r.pid)+'</strong><span class="oid">'+esc(r.pid)+'</span><span class="sh"><span class="sdot" style="background:'+cv(k)+'"></span>'+esc(r.shift||k)+'</span><span>in '+esc(r.clockIn?clk(r.clockIn):"")+' on '+esc(r.date)+'</span><span class="over">no clock-out, '+overdueBy(r)+' past shift end</span></div>';}).join("");}
+    return '<div class="overdue-item"><span class="av" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><strong>'+esc(r.person||r.pid)+'</strong><span class="oid">'+esc(r.pid)+'</span><span class="sh"><span class="sdot" style="background:'+cv(k)+'"></span>'+esc(r.shift||k)+'</span><span>in '+esc(r.clockIn?clk(r.clockIn):"")+' on '+esc(r.date)+'</span><span class="over">no clock-out, '+overdueBy(r)+' past shift end</span></div>';}).join("");
+  var ms=$("#missinSec");if(ms){var ml=(DATA.records||[]).filter(function(r){return !!r.missingIn;});ms.hidden=!ml.length;$("#missinCount").textContent=ml.length;
+    $("#missinList").innerHTML=ml.map(function(r){var k=catOf(r.shift,r);return '<div class="overdue-item"><span class="av" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><strong>'+esc(r.person||r.pid)+'</strong><span class="oid">'+esc(r.pid)+'</span><span class="sh"><span class="sdot" style="background:'+cv(k)+'"></span>'+esc(r.shift||k)+'</span><span>out '+esc(r.clockIn?clk(r.clockIn):"")+' on '+esc(r.date)+'</span><span class="over">no clock-in recorded</span></div>';}).join("");}}
 
 /* ================= master render ================= */
 function render(){
@@ -2481,15 +2513,15 @@ function renderTimecardView(){
   $("#tcCount2").textContent=rows.length+" row"+(rows.length===1?"":"s");
   if(!rows.length){$("#tcRows").innerHTML='<tr><td colspan="12"><div class="empty"><div class="t">No timecards found</div></div></td></tr>';return;}
   $("#tcRows").innerHTML=rows.map(function(r){
-    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':isOverdueOut(r)?'<span class="dvPill overdue">Punch-out missed</span>':isLive(r)?'<span class="dvPill ot">On floor</span>':r.status==="in"?'<span class="dvPill">Missing out</span>':'<span class="dvPill">Complete</span>';
-    return '<tr'+(isOverdueOut(r)?' class="overdue"':'')+'>'+
+    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':r.missingIn?'<span class="dvPill overdue">Punch-in missed</span>':isOverdueOut(r)?'<span class="dvPill overdue">Punch-out missed</span>':isLive(r)?'<span class="dvPill ot">On floor</span>':r.status==="in"?'<span class="dvPill">Missing out</span>':'<span class="dvPill">Complete</span>';
+    return '<tr'+((isOverdueOut(r)||r.missingIn)?' class="overdue"':'')+'>'+
       '<td class="dvName">'+esc(r.person||r.pid)+'</td>'+
       '<td><button class="btn-ghost" data-card="'+esc(r.pid)+'" data-name="'+esc(r.person||r.pid)+'" style="padding:4px 10px;font-size:12px;white-space:nowrap">Payroll card</button></td>'+
       '<td class="tnum">'+esc(r.pid)+'</td>'+
       '<td class="tnum">'+esc(r.date)+'</td>'+
       '<td>'+esc(r.shift||"—")+'</td>'+
-      '<td class="tnum">'+(r.clockIn?esc(r.clockIn):'<span class="z">—</span>')+'</td>'+
-      '<td class="tnum">'+(r.clockOut?esc(r.clockOut):'<span class="z">—</span>')+'</td>'+
+      '<td class="tnum">'+((r.missingIn?"":r.clockIn)?esc(r.clockIn):'<span class="z">—</span>')+'</td>'+
+      '<td class="tnum">'+((r.missingIn?r.clockIn:r.clockOut)?esc(r.missingIn?r.clockIn:r.clockOut):'<span class="z">—</span>')+'</td>'+
       '<td class="tnum">'+(r.workMin?hhmm(r.workMin):'<span class="z">—</span>')+'</td>'+
       '<td class="tnum">'+(r.otMin?hhmm(r.otMin):'<span class="z">—</span>')+'</td>'+
       '<td class="tnum">'+(r.workMin?hhmm(r.workMin+30):'<span class="z">—</span>')+'</td>'+
