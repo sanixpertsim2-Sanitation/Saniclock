@@ -795,6 +795,14 @@ td.z{color:var(--text-3)}
 .pill.in{background:var(--emerald-weak);color:var(--emerald)} .pill.in .d{background:var(--emerald);box-shadow:0 0 6px var(--emerald-glow)}
 .pill.done{background:var(--blue-weak);color:var(--blue)} .pill.done .d{background:var(--blue)}
 .pill.absent{background:var(--bg-tint);color:var(--text-3)} .pill.absent .d{background:var(--text-3)}
+.pill.overdue{background:rgba(245,158,11,.18);color:#92400e;font-weight:700} .pill.overdue .d{background:#f59e0b}
+.dvPill.overdue{background:rgba(245,158,11,.18);color:#92400e;font-weight:700}
+tr.overdue>td{background:rgba(245,158,11,.14)!important}
+.overdue-list{display:grid;gap:8px;margin:0 2px 12px}
+.overdue-item{display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:10px 14px;border:1px solid #f59e0b;background:rgba(245,158,11,.12);border-radius:12px;font-size:13px}
+.overdue-item .av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.overdue-item .oid{color:var(--text-3)} .overdue-item .sh{display:inline-flex;align-items:center;gap:6px}
+.overdue-item .over{color:#b45309;font-weight:700;margin-left:auto}
 .pill.warn{background:var(--amber-weak);color:var(--amber)} .pill.warn .d{background:var(--amber)}
 .flag{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:650;color:var(--amber);
   background:var(--amber-weak);border-radius:6px;padding:2px 7px;margin-left:6px}
@@ -1265,6 +1273,14 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
     <div id="exceptions"></div>
   </section>
 
+  <section id="overdueSec" hidden>
+    <div class="sec-head">
+      <h2>Punch-out missed</h2><span class="count-badge" id="overdueCount">0</span>
+      <span class="hint">Clocked in, shift has ended, still no clock-out</span>
+    </div>
+    <div id="overdueList" class="overdue-list"></div>
+  </section>
+
   <section>
     <div class="sec-head">
       <h2>Timecards</h2><span class="count-badge" id="tcCount">0</span>
@@ -1275,6 +1291,7 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
         <div class="segbar" id="statusSeg" role="group" aria-label="Filter timecards by status">
           <button class="seg active" data-seg="all">All <span class="n" id="c-all">0</span></button>
           <button class="seg" data-seg="live">On floor <span class="n" id="c-live">0</span></button>
+          <button class="seg exc" data-seg="overdue">Punch-out missed <span class="n" id="c-overdue">0</span></button>
           <button class="seg" data-seg="done">Completed <span class="n" id="c-done">0</span></button>
           <button class="seg exc" data-seg="exception">Exceptions <span class="n" id="c-exc">0</span></button>
         </div>
@@ -1716,6 +1733,11 @@ function liveElapsed(r){
   return e;}
 function isLive(r){return liveElapsed(r)!=null;}
 function isMissingOut(r){return r.status==="in"&&!isLive(r);}   // open but not live => missing clock-out
+/* Punch-out missed: clocked in (within the live window), still open, and the shift has ended. */
+var BAND_END={Day:900,Afternoon:1380,Night:420},OVERDUE_GRACE_MS=30*60000;
+function shiftEndMs(r){var dp=parseDate(r.date);if(!dp)return null;var b=catOf(r.shift,r);var end=BAND_END[b];if(end==null)return null;var ms=new Date(dp.getFullYear(),dp.getMonth(),dp.getDate(),0,0,0).getTime()+end*60000;if(b==="Night")ms+=86400000;return ms;}
+function isOverdueOut(r){if(r.status!=="in")return false;var ms=clockInMs(r);if(ms==null)return false;var age=Date.now()-ms;if(age<0||age>=MAX_LIVE_MS)return false;var end=shiftEndMs(r);if(end==null)return false;return Date.now()>=end+OVERDUE_GRACE_MS;}
+function overdueBy(r){var end=shiftEndMs(r);var m=end?Math.max(0,Math.round((Date.now()-end)/60000)):0;return Math.floor(m/60)+"h "+(m%60)+"m";}
 
 /* ---- Phase-1 flags (from our engine, delivered per-record) ---- */
 var FCODE={MISSING_OUT:"MISSING",MEAL_PERIOD:"MEAL",OUT_BEFORE_IN:"OUT<IN",SUB_MINUTE_SHIFT:"SUB-MIN",
@@ -2011,6 +2033,7 @@ function filterBase(recs){ // shift + search only (used by floor / exceptions / 
     return true;});}
 function segMatch(r){
   if(state.seg==="live")return isLive(r);
+  if(state.seg==="overdue")return isOverdueOut(r);
   if(state.seg==="done")return r.status==="done";
   if(state.seg==="exception")return isException(r);
   return true;}
@@ -2024,15 +2047,16 @@ function sortRecs(recs){
     if(va<vb)return -1*dir;if(va>vb)return 1*dir;return String(a.person).localeCompare(String(b.person));});
   return arr;}
 function statusPill(r){
+  if(isOverdueOut(r))return '<span class="pill overdue"><span class="d"></span>Punch-out missed</span>';
   if(isLive(r))return '<span class="pill in"><span class="d"></span>On shift</span>';
   if(isMissingOut(r))return '<span class="pill warn"><span class="d"></span>Missing out</span>';
   if(r.status==="done")return '<span class="pill done"><span class="d"></span>Done</span>';
   return '<span class="pill absent"><span class="d"></span>Absent</span>';}
 function renderTable(recs){
   var base=filterBase(recs);
-  var cnt={all:base.length,live:0,done:0,exc:0};
-  base.forEach(function(r){if(isLive(r))cnt.live++;if(r.status==="done")cnt.done++;if(isException(r))cnt.exc++;});
-  $("#c-all").textContent=cnt.all;$("#c-live").textContent=cnt.live;$("#c-done").textContent=cnt.done;$("#c-exc").textContent=cnt.exc;
+  var cnt={all:base.length,live:0,done:0,exc:0,overdue:0};
+  base.forEach(function(r){if(isLive(r))cnt.live++;if(isOverdueOut(r))cnt.overdue++;if(r.status==="done")cnt.done++;if(isException(r))cnt.exc++;});
+  $("#c-all").textContent=cnt.all;$("#c-live").textContent=cnt.live;$("#c-done").textContent=cnt.done;$("#c-exc").textContent=cnt.exc;var co=$("#c-overdue");if(co)co.textContent=cnt.overdue;
   var rows=sortRecs(visible(recs));
   $("#tcCount").textContent=rows.length;
   if(!rows.length){$("#rows").innerHTML='<tr><td colspan="10"><div class="empty">'+
@@ -2042,7 +2066,7 @@ function renderTable(recs){
     var warn=(r.abnormal&&!isMissingOut(r))?'<span class="flag" title="'+esc(r.abnormal)+'">! '+esc(r.abnormal)+'</span>':'';
     var payable=(typeof r.netMin==="number")?'<b>'+hmShort(r.netMin)+'</b>':'<span class="z">—</span>';
     var night=(typeof r.nightMin==="number"&&r.nightMin>0)?'<span class="ndot"></span>'+hmShort(r.nightMin):'<span class="z">—</span>';
-    return '<tr>'+
+    return '<tr'+(isOverdueOut(r)?' class="overdue"':'')+'>'+
       '<td class="cell-emp" data-label="Employee"><div class="emp"><span class="dot" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><div><div class="en">'+esc(r.person||"—")+'</div>'+(r.pid?'<div class="ep">'+esc(r.pid)+'</div>':'')+'</div>'+warn+'</div></td>'+
       '<td data-label="Shift"><span class="shiftcell"><span class="sdot" style="background:'+cv(k)+'"></span><span class="shift-tag">'+esc(r.shift||k)+'</span></span></td>'+
       '<td class="r'+(r.clockIn?"":" z")+'" data-label="Clock in">'+(r.clockIn?esc(clk(r.clockIn)):"—")+'</td>'+
@@ -2075,11 +2099,17 @@ function renderDates(){
     return '<button class="date-pill" role="tab" data-d="'+esc(d)+'" aria-selected="'+(d===state.date)+'"><small>'+dLabel(d)+'</small>'+dSub(d)+'</button>';}).join("");
   var active=$('#dates [aria-selected="true"]');if(active)active.scrollIntoView({inline:"center",block:"nearest"});}
 
+function renderOverdue(){var sec=$("#overdueSec");if(!sec)return;var list=(DATA.records||[]).filter(isOverdueOut);
+  sec.hidden=!list.length;$("#overdueCount").textContent=list.length;
+  $("#overdueList").innerHTML=list.map(function(r){var k=catOf(r.shift,r);
+    return '<div class="overdue-item"><span class="av" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><strong>'+esc(r.person||r.pid)+'</strong><span class="oid">'+esc(r.pid)+'</span><span class="sh"><span class="sdot" style="background:'+cv(k)+'"></span>'+esc(r.shift||k)+'</span><span>in '+esc(r.clockIn?clk(r.clockIn):"")+' on '+esc(r.date)+'</span><span class="over">no clock-out, '+overdueBy(r)+' past shift end</span></div>';}).join("");}
+
 /* ================= master render ================= */
 function render(){
   if(!DATA.ok){$("#alert").innerHTML='<div class="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><div><b>Data unavailable.</b> '+esc(DATA.error||"Could not read the CSV export.")+'</div></div>';}
   else{$("#alert").innerHTML="";}
   var dates=DATA.dates||[];
+  renderOverdue();
   if(!dates.length){
     $("#dayTitle").textContent="No attendance yet";
     $("#daySub").textContent="Punches appear here within about a minute of the first clock-in at the device.";
@@ -2436,8 +2466,8 @@ function renderTimecardView(){
   $("#tcCount2").textContent=rows.length+" row"+(rows.length===1?"":"s");
   if(!rows.length){$("#tcRows").innerHTML='<tr><td colspan="12"><div class="empty"><div class="t">No timecards found</div></div></td></tr>';return;}
   $("#tcRows").innerHTML=rows.map(function(r){
-    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':isLive(r)?'<span class="dvPill ot">On floor</span>':r.status==="in"?'<span class="dvPill">Missing out</span>':'<span class="dvPill">Complete</span>';
-    return '<tr>'+
+    var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':isOverdueOut(r)?'<span class="dvPill overdue">Punch-out missed</span>':isLive(r)?'<span class="dvPill ot">On floor</span>':r.status==="in"?'<span class="dvPill">Missing out</span>':'<span class="dvPill">Complete</span>';
+    return '<tr'+(isOverdueOut(r)?' class="overdue"':'')+'>'+
       '<td class="dvName">'+esc(r.person||r.pid)+'</td>'+
       '<td><button class="btn-ghost" data-card="'+esc(r.pid)+'" data-name="'+esc(r.person||r.pid)+'" style="padding:4px 10px;font-size:12px;white-space:nowrap">Payroll card</button></td>'+
       '<td class="tnum">'+esc(r.pid)+'</td>'+
