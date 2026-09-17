@@ -110,6 +110,10 @@ function newId(prefix) { return (prefix || 'id') + '_' + Date.now().toString(36)
 // as an scrypt hash — never in plaintext. Sessions are stateless signed tokens
 // (payload.HMAC-SHA256) in an HttpOnly/Secure cookie, so no server-side store.
 const crypto = require('crypto');
+const { execFileSync } = require('child_process');
+// Bi-weekly pay periods, Monday-anchored: Mon Sep 7 2026 is a period start; 14-day stride (auto-rolls).
+function biweekPeriodsSrv() { const anchor = new Date(2026, 8, 7); const t = new Date(); t.setHours(0, 0, 0, 0); const ms = 864e5, stride = 14 * ms; const k = Math.floor((t - anchor) / stride); const cs = new Date(anchor.getTime() + k * stride); const ce = new Date(cs.getTime() + 13 * ms); const ps = new Date(cs.getTime() - 14 * ms); const pe = new Date(cs.getTime() - ms); return { cur: { s: cs, e: ce }, prev: { s: ps, e: pe } }; }
+function fmtPeriodSrv(pr) { const f = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); return f(pr.s) + ' - ' + f(pr.e); }
 const AUTH_FILE = path.join(__dirname, 'data', '.auth.json');
 function seedAuth() {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -1353,7 +1357,7 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
     </div>
     <div class="dvWrap">
       <table class="dvTable">
-        <thead><tr><th class="sortable" data-k="person" style="cursor:pointer;user-select:none">Person Name</th><th class="sortable" data-k="pid" style="cursor:pointer;user-select:none">Person ID</th><th class="sortable" data-k="date" style="cursor:pointer;user-select:none">Date</th><th class="sortable" data-k="shift" style="cursor:pointer;user-select:none">Timesheet</th><th class="sortable" data-k="clockIn" style="cursor:pointer;user-select:none">Clock In</th><th class="sortable" data-k="clockOut" style="cursor:pointer;user-select:none">Clock Out</th><th class="sortable" data-k="workMin" style="cursor:pointer;user-select:none">Total Work Time</th><th class="sortable" data-k="otMin" style="cursor:pointer;user-select:none">Total Overtime</th><th class="sortable" data-k="totalMin" style="cursor:pointer;user-select:none">Total Time</th><th class="sortable" data-k="breakMin" style="cursor:pointer;user-select:none">Total Break</th><th class="sortable" data-k="status" style="cursor:pointer;user-select:none">Status</th></tr></thead>
+        <thead><tr><th class="sortable" data-k="person" style="cursor:pointer;user-select:none">Person Name</th><th class="sortable" data-k="pid" style="cursor:pointer;user-select:none">Person ID</th><th class="sortable" data-k="date" style="cursor:pointer;user-select:none">Date</th><th class="sortable" data-k="shift" style="cursor:pointer;user-select:none">Timesheet</th><th class="sortable" data-k="clockIn" style="cursor:pointer;user-select:none">Clock In</th><th class="sortable" data-k="clockOut" style="cursor:pointer;user-select:none">Clock Out</th><th class="sortable" data-k="workMin" style="cursor:pointer;user-select:none">Total Work Time</th><th class="sortable" data-k="otMin" style="cursor:pointer;user-select:none">Total Overtime</th><th class="sortable" data-k="totalMin" style="cursor:pointer;user-select:none">Total Time</th><th class="sortable" data-k="breakMin" style="cursor:pointer;user-select:none">Total Break</th><th class="sortable" data-k="status" style="cursor:pointer;user-select:none">Status</th><th>Payroll card</th></tr></thead>
         <tbody id="tcRows"></tbody>
       </table>
     </div>
@@ -1522,6 +1526,15 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
       <div class="modal-actions">
         <button class="btn-ghost" id="mendCancel">Cancel</button>
         <button class="btn-primary" id="mendConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="cardOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cardTitle" style="max-width:540px">
+      <h3 id="cardTitle">Payroll card</h3>
+      <div id="cardBody"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="cardClose">Close</button>
       </div>
     </div>
   </div>
@@ -2391,7 +2404,7 @@ function renderTimecardView(){
   });
   rows=applySort(rows,TCSORT);
   $("#tcCount2").textContent=rows.length+" row"+(rows.length===1?"":"s");
-  if(!rows.length){$("#tcRows").innerHTML='<tr><td colspan="11"><div class="empty"><div class="t">No timecards found</div></div></td></tr>';return;}
+  if(!rows.length){$("#tcRows").innerHTML='<tr><td colspan="12"><div class="empty"><div class="t">No timecards found</div></div></td></tr>';return;}
   $("#tcRows").innerHTML=rows.map(function(r){
     var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':r.status==="in"?'<span class="dvPill ot">On floor</span>':'<span class="dvPill">Complete</span>';
     return '<tr>'+
@@ -2406,6 +2419,7 @@ function renderTimecardView(){
       '<td class="tnum">'+(r.workMin?hhmm(r.workMin+30):'<span class="z">—</span>')+'</td>'+
       '<td class="tnum">'+(r.status==="done"?"0:30":'<span class="z">—</span>')+'</td>'+
       '<td>'+statusPill+'</td>'+
+      '<td><button class="btn-ghost" data-card="'+esc(r.pid)+'" data-name="'+esc(r.person||r.pid)+'" style="padding:4px 10px;font-size:12px;white-space:nowrap">Payroll card</button></td>'+
     '</tr>';}).join("");
 }
 
@@ -2608,6 +2622,26 @@ $("#mendSeg").addEventListener("click",function(e){var b=e.target.closest(".seg"
 $("#addPunchBtn").addEventListener("click",openMendModal);
 $("#mendCancel").addEventListener("click",closeMendModal);
 $("#mendOverlay").addEventListener("click",function(e){if(e.target.id==="mendOverlay")closeMendModal();});
+function openPayrollCard(pid,name){
+  var sel=$("#tcPeriod");var per=(sel&&sel.value)||"cur";if(per!=="prev")per="cur";
+  $("#cardTitle").textContent="Payroll card - "+name;
+  $("#cardBody").innerHTML='<div class="empty"><div class="t">Computing from the payroll engine&hellip;</div></div>';
+  $("#cardOverlay").hidden=false;
+  fetch("/api/payroll-card?pid="+encodeURIComponent(pid)+"&period="+per,{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){
+    if(!j.ok){$("#cardBody").innerHTML='<div class="modal-err">'+esc(j.error||"failed")+'</div>';return;}
+    var h='<div style="font-size:12px;color:var(--text-2);margin-bottom:8px">'+esc(j.periodLabel||"")+' &middot; Person ID '+esc(j.pid)+(j.noBreak?' &middot; no-break employee':'')+(j.exempt?' &middot; exempt':'')+'</div>';
+    h+='<table class="dvTable" style="width:100%"><thead><tr><th>Date</th><th>Day</th><th style="text-align:right">Hours</th></tr></thead><tbody>';
+    var dn=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    (j.periodDates||[]).forEach(function(ds){var p=ds.split("/");var d=new Date(+p[2],+p[0]-1,+p[1]);var v=(j.days&&j.days[ds])||0;h+='<tr><td class="tnum">'+esc(ds)+'</td><td>'+dn[d.getDay()]+'</td><td class="tnum" style="text-align:right">'+(v?(+v).toFixed(1):'<span class="z">0.0</span>')+'</td></tr>';});
+    h+='</tbody><tfoot><tr><td colspan="2" style="font-weight:700">Total</td><td class="tnum" style="text-align:right;font-weight:700;color:var(--text)">'+(+j.total||0).toFixed(1)+'</td></tr></tfoot></table>';
+    if(j.notes&&j.notes.length)h+='<div style="font-size:12px;color:var(--text-2);margin-top:8px">'+esc(j.notes.join("; "))+'</div>';
+    $("#cardBody").innerHTML=h;
+  }).catch(function(){$("#cardBody").innerHTML='<div class="modal-err">Network error.</div>';});
+}
+function closePayrollCard(){$("#cardOverlay").hidden=true;}
+$("#cardClose").addEventListener("click",closePayrollCard);
+$("#cardOverlay").addEventListener("click",function(e){if(e.target.id==="cardOverlay")closePayrollCard();});
+document.addEventListener("click",function(e){var b=(e.target&&e.target.closest)?e.target.closest("button[data-card]"):null;if(!b)return;openPayrollCard(b.getAttribute("data-card"),b.getAttribute("data-name")||b.getAttribute("data-card"));});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!$("#mendOverlay").hidden)closeMendModal();});
 $("#mendConfirm").addEventListener("click",submitMendPunch);
 $("#mendRows").addEventListener("click",function(e){var b=e.target.closest("button[data-act]");if(!b)return;decideMend(b.getAttribute("data-id"),b.getAttribute("data-act"));});
@@ -3327,6 +3361,29 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url === '/api/payroll-card') {
+    // The payroll card runs the REAL payroll engine (/opt/ngteco/payroll_generator via payroll_card.py)
+    // on this employee's paired shifts for the chosen pay period, so it matches the emailed sheet.
+    const qs = new URL(req.url, 'http://x').searchParams;
+    const pid = String(qs.get('pid') || '').trim().toUpperCase();
+    const sel = String(qs.get('period') || 'cur');
+    const P = biweekPeriodsSrv(); const pr = sel === 'prev' ? P.prev : P.cur;
+    const d = buildPayload();
+    const recs = (d.records || []).filter(r => String(r.pid || '').toUpperCase() === pid);
+    const period = []; for (let t = pr.s.getTime(); t <= pr.e.getTime(); t += 864e5) { const x = new Date(t); period.push(('0' + (x.getMonth() + 1)).slice(-2) + '/' + ('0' + x.getDate()).slice(-2) + '/' + x.getFullYear()); }
+    const inSet = new Set(period);
+    const shifts = recs.filter(r => inSet.has(r.date) && r.clockInMin != null && r.clockOutMin != null)
+      .map(r => ({ date: r.date, ci_m: r.clockInMin, co_m: r.clockOutMin, work_m: r.workMin, total_m: r.totalMin, band: r.pairedBand || r.shiftFamily || r.shift || null }));
+    const person = (recs[0] && recs[0].person) || pid;
+    let out;
+    try {
+      const raw = execFileSync('/usr/bin/python3', ['/opt/ngteco/payroll_card.py'], { input: JSON.stringify({ person, pid, period, shifts }), timeout: 15000 }).toString('utf8');
+      out = JSON.parse(raw);
+    } catch (e) { out = { ok: false, error: 'payroll engine failed: ' + ((e && e.message) || e) }; }
+    out.pid = pid; out.periodLabel = fmtPeriodSrv(pr); out.periodDates = period;
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(out)); return;
+  }
   if (url === '/api/punches') {
     const d = buildPayload();
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
