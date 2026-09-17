@@ -120,6 +120,13 @@ const CPATH = BASE ? BASE + '/' : '/';
 // HIDE_VIEWS=mend,absence,groups,devices,settings removes those sections from an instance
 // (nav entries dropped client-side, their APIs answer 404). Empty = full app.
 const HIDE_VIEWS = (process.env.HIDE_VIEWS || '').split(',').map(v => v.trim()).filter(Boolean);
+function withApp(html) {
+  if (!BASE) return html;
+  const fac = (settingsStore.load().facilityName) || BASE.replace(/\//g, '');
+  return String(html)
+    .replace('apple-mobile-web-app-title" content="SaniClock"', 'apple-mobile-web-app-title" content="SaniClock ' + fac + '"')
+    .replace('<title>SaniClock ', '<title>SaniClock ' + fac + ' ');
+}
 function withFlags(html) {
   if (!HIDE_VIEWS.length) return html;
   return String(html).replace(/<\/main>(\s*)<script>/, '</main>$1<script>window.HIDE_VIEWS=' + JSON.stringify(HIDE_VIEWS) + ';');
@@ -3307,6 +3314,14 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (url === '/manifest-me.webmanifest') { res.writeHead(200, { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'public, max-age=3600' }); res.end(SANICLOCK_ME_MANIFEST); return; }
+  if (url === '/manifest.webmanifest' && BASE) {
+    // Installable app for this instance: its own id/name, starts on the dashboard, scoped to its path.
+    const fac = (settingsStore.load().facilityName) || BASE.replace(/\//g, '');
+    const mf = JSON.stringify({ id: BASE + '/', name: 'SaniClock ' + fac, short_name: fac, description: 'Attendance and payroll for ' + fac + '.',
+      start_url: BASE + '/', scope: BASE + '/', display: 'standalone', orientation: 'any', background_color: '#f6f6f4', theme_color: '#0044ff',
+      icons: [{ src: BASE + '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' }, { src: BASE + '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }, { src: BASE + '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }] });
+    res.writeHead(200, { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'no-store' }); res.end(mf); return;
+  }
   if (url === '/manifest.webmanifest') {
     res.writeHead(200, { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'public, max-age=3600' });
     res.end(SANICLOCK_MANIFEST);
@@ -3314,7 +3329,10 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/sw.js') {
     res.writeHead(200, { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-store', 'Service-Worker-Allowed': '/' });
-    res.end(SANICLOCK_SW);
+    let sw = SANICLOCK_SW;
+    if (BASE) { sw = withBase(sw).replace("const C='saniclock-v5'", "const C='saniclock-v5|" + BASE + "'").replace("ks.filter(function(k){return k!==C})", "ks.filter(function(k){return k!==C&&k.indexOf('|" + BASE + "')>0})"); }
+    else { sw = sw.replace("ks.filter(function(k){return k!==C})", "ks.filter(function(k){return k!==C&&k.indexOf('|')<0})"); }
+    res.end(sw);
     return;
   }
   if (url === '/api/login' && req.method === 'POST') {
@@ -4001,7 +4019,7 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/' || url === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(withBase(withFlags(page())));
+    res.end(withBase(withFlags(withApp(page()))));
     return;
   }
   res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
