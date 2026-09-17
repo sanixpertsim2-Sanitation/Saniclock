@@ -121,7 +121,8 @@ function withBase(html) {
   if (!BASE) return html;
   return String(html)
     .replace(/(["'])\/(api|login|logout|icon|m\b|me\b|manifest|sw\.js|stage-bg|brand-|connect|kit|discover|welcome|preview)/g, '$1' + BASE + '/$2')
-    .replace(/(href=|location=|\.assign\(|\.replace\()(["'])\/(["'])/g, '$1$2' + BASE + '/$3');
+    .replace(/(href=|location=|\.assign\(|\.replace\()(["'])\/(["'])/g, '$1$2' + BASE + '/$3')
+    .replace(/\?nx:(["'])\/(["'])/g, '?nx:$1' + BASE + '/$2');
 }
 // Bi-weekly pay periods, Monday-anchored: Mon Sep 7 2026 is a period start; 14-day stride (auto-rolls).
 function biweekPeriodsSrv() { const anchor = new Date(2026, 8, 7); const t = new Date(); t.setHours(0, 0, 0, 0); const ms = 864e5, stride = 14 * ms; const k = Math.floor((t - anchor) / stride); const cs = new Date(anchor.getTime() + k * stride); const ce = new Date(cs.getTime() + 13 * ms); const ps = new Date(cs.getTime() - 14 * ms); const pe = new Date(cs.getTime() - ms); return { cur: { s: cs, e: ce }, prev: { s: ps, e: pe } }; }
