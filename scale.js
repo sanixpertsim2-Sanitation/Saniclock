@@ -316,7 +316,18 @@ function loadLiveData() {
   var scopedEvents = parsed.events || [];
   var SCOPE_DEVICE = process.env.FERRERO_DEVICE || '';
   if (SCOPE_DEVICE) scopedEvents = scopedEvents.filter(function (ev) { var sc = String(ev.source || ''); return sc === SCOPE_DEVICE || sc.toLowerCase() === 'manual'; });
-  const records = punchPair.pairEvents(scopedEvents, { shiftByPid });
+  let records = punchPair.pairEvents(scopedEvents, { shiftByPid });
+  var DATA_FROM = process.env.DATA_FROM || '';
+  if (DATA_FROM) {
+    var floor = DATA_FROM.replace(/-/g, '');
+    records = records.filter(function (r) {
+      if (!r.date) return true;
+      var p = String(r.date).split('/');
+      if (p.length !== 3) return true;
+      var ymd = p[2] + ('0' + p[0]).slice(-2) + ('0' + p[1]).slice(-2);
+      return ymd >= floor;
+    });
+  }
   for (const r of records) { if ((!r.person || r.person === r.pid) && nameByPid[r.pid]) r.person = nameByPid[r.pid]; }
   const dates = [...new Set(records.map(r => r.date).filter(Boolean))].sort((a, b) => {
     const pa = a.split('/'), pb = b.split('/');
