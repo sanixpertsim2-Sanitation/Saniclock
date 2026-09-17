@@ -137,12 +137,22 @@ const toRow = (rec) => [esc(rec.employee_code), esc(rec.employee_name || rec.emp
     // The API caps a page at 50 rows regardless of pageSize, so stop on the rows actually received, not page*100.
     if (data.length === 0 || fetched >= total) break; page++;
   }
-  // Newest-first paging while punches keep arriving can repeat a row across two pages.
-  const seen = new Set();
-  recs = recs.filter(x => { const k = x.id || (x.employee_code + '|' + x.punch_format_time); if (seen.has(k)) return false; seen.add(k); return true; });
+  // NGTeco's paging is not stable: the same window fetched four times returned 631/734/783/677 unique rows of 784,
+  // and only their union was complete. So keep every row seen (by id) inside the window and build the files from
+  // that union; it converges to the full set within a few 30-second pulls.
+  // ponytail: a punch deleted in NGTeco lingers until it ages out of the window; add a periodic full rebuild if that bites.
+  const STORE = process.env.PULL_STORE || require('path').join(require('path').dirname(OUT), 'ngteco-seen.json');
+  let store = {}; try { store = JSON.parse(fs.readFileSync(STORE, 'utf8')) || {}; } catch {}
+  const ymd = (mdy) => { const p = String(mdy || '').split('/'); return p.length === 3 ? p[2] + '-' + p[0] + '-' + p[1] : ''; };
+  let added = 0;
+  for (const x of recs) { const k = x.id || (x.employee_code + '|' + x.punch_format_time); if (!store[k]) added++; store[k] = { employee_code: x.employee_code, employee_name: x.employee_name, att_date: x.att_date, attendance_status: x.attendance_status, verify_type: x.verify_type, punch_from: x.punch_from }; }
+  for (const k of Object.keys(store)) { const d = ymd(store[k].att_date); if (d && d < START) delete store[k]; }
+  fs.writeFileSync(STORE, JSON.stringify(store));
+  const union = Object.values(store).sort((a, b) => (ymd(a.att_date) + ' ' + a.attendance_status).localeCompare(ymd(b.att_date) + ' ' + b.attendance_status));
+  log('Fetched ' + fetched + '/' + total + ' account rows, ' + added + ' new; union in window ' + union.length);
   for (const t of TARGETS) {
-    const rows = recs.filter(x => String(x.punch_from || '') === t.dev).map(toRow);
+    const rows = union.filter(x => String(x.punch_from || '') === t.dev).map(toRow);
     fs.writeFileSync(t.out, HEADER + '\n' + rows.join('\n') + '\n');
-    log('Pulled ' + rows.length + ' punches for ' + t.dev + ' of ' + fetched + '/' + total + ' account rows (' + START + '..' + END + ') -> ' + t.out);
+    log('Pulled ' + rows.length + ' punches for ' + t.dev + ' (' + START + '..' + END + ') -> ' + t.out);
   }
 })().catch((e) => { log('PULL FAILED: ' + e.message); process.exit(1); });
