@@ -111,6 +111,18 @@ function newId(prefix) { return (prefix || 'id') + '_' + Date.now().toString(36)
 // (payload.HMAC-SHA256) in an HttpOnly/Secure cookie, so no server-side store.
 const crypto = require('crypto');
 const { execFileSync } = require('child_process');
+// Multi-instance support: BASE_PATH lets one copy serve under a sub-path (e.g. /IM2) behind an
+// nginx location that strips the prefix; SESSION_COOKIE keeps each instance's login cookie
+// distinct on a shared host. Both are no-ops for the root (Ferrero) instance.
+const BASE = (process.env.BASE_PATH || '').replace(/\/+$/, '');
+const COOKIE = process.env.SESSION_COOKIE || 'sc_session';
+const CPATH = BASE ? BASE + '/' : '/';
+function withBase(html) {
+  if (!BASE) return html;
+  return String(html)
+    .replace(/(["'])\/(api|login|logout|icon|m\b|me\b|manifest|sw\.js|stage-bg|brand-|connect|kit|discover|welcome|preview)/g, '$1' + BASE + '/$2')
+    .replace(/(href=|location=|\.assign\(|\.replace\()(["'])\/(["'])/g, '$1$2' + BASE + '/$3');
+}
 // Bi-weekly pay periods, Monday-anchored: Mon Sep 7 2026 is a period start; 14-day stride (auto-rolls).
 function biweekPeriodsSrv() { const anchor = new Date(2026, 8, 7); const t = new Date(); t.setHours(0, 0, 0, 0); const ms = 864e5, stride = 14 * ms; const k = Math.floor((t - anchor) / stride); const cs = new Date(anchor.getTime() + k * stride); const ce = new Date(cs.getTime() + 13 * ms); const ps = new Date(cs.getTime() - 14 * ms); const pe = new Date(cs.getTime() - ms); return { cur: { s: cs, e: ce }, prev: { s: ps, e: pe } }; }
 function fmtPeriodSrv(pr) { const f = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); return f(pr.s) + ' - ' + f(pr.e); }
@@ -154,7 +166,7 @@ function parseCookies(req) {
   const out = {}; (req.headers.cookie || '').split(';').forEach((p) => { const i = p.indexOf('='); if (i > 0) out[p.slice(0, i).trim()] = p.slice(i + 1).trim(); });
   return out;
 }
-function isAuthed(req) { return verifySession(parseCookies(req).sc_session); }
+function isAuthed(req) { return verifySession(parseCookies(req)[COOKIE]); }
 function changePassword(newPass) {
   const salt = crypto.randomBytes(16).toString('hex');
   AUTH.salt = salt; AUTH.hash = crypto.scryptSync(String(newPass), salt, 64).toString('hex'); AUTH.seededDefault = false;
@@ -3239,16 +3251,16 @@ const server = http.createServer((req, res) => {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ ok: false, error: 'authentication required' }));
     } else {
-      res.writeHead(302, { Location: '/login' + (req.method === 'GET' && url && url !== '/' ? '?next=' + encodeURIComponent(url) : '') });
+      res.writeHead(302, { Location: BASE + '/login' + (req.method === 'GET' && url && url !== '/' ? '?next=' + encodeURIComponent(BASE + url) : '') });
       res.end();
     }
     return;
   }
 
-  if (url === '/me' || url === '/me/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(ME_HTML); return; }
+  if (url === '/me' || url === '/me/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(withBase(ME_HTML)); return; }
   if (url === '/login') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(LOGIN_HTML);
+    res.end(withBase(LOGIN_HTML));
     return;
   }
   if (url === '/login-bg.jpg' || url === '/stage-bg.jpg' || url === '/stage-bg.png') {
@@ -3273,7 +3285,7 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/m' || url === '/m/') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(MOBILE_HTML);
+    res.end(withBase(MOBILE_HTML));
     return;
   }
   if (url === '/manifest-me.webmanifest') { res.writeHead(200, { 'Content-Type': 'application/manifest+json', 'Cache-Control': 'public, max-age=3600' }); res.end(SANICLOCK_ME_MANIFEST); return; }
@@ -3295,7 +3307,7 @@ const server = http.createServer((req, res) => {
         const token = signSession();
         res.writeHead(200, {
           'Content-Type': 'application/json',
-          'Set-Cookie': `sc_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_HOURS * 3600}`,
+          'Set-Cookie': `${COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=${CPATH}; Max-Age=${SESSION_HOURS * 3600}`,
         });
         res.end(JSON.stringify({ ok: true, mustChange: !!AUTH.seededDefault }));
       } else {
@@ -3306,7 +3318,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (url === '/api/logout') {
-    res.writeHead(302, { 'Set-Cookie': 'sc_session=; HttpOnly; Path=/; Max-Age=0', Location: '/login' });
+    res.writeHead(302, { 'Set-Cookie': COOKIE + '=; HttpOnly; Path=' + CPATH + '; Max-Age=0', Location: BASE + '/login' });
     res.end();
     return;
   }
@@ -3741,7 +3753,7 @@ const server = http.createServer((req, res) => {
   // ---- Email invites (SMTP; configure at /connect/mail) ----
   if (url === '/connect/mail' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(MAIL_SETUP_HTML(mailer.meta()));
+    res.end(withBase(MAIL_SETUP_HTML(mailer.meta())));
     return;
   }
   if (url === '/api/mail/save' && req.method === 'POST') {
@@ -3971,7 +3983,7 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/' || url === '/index.html') {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(page());
+    res.end(withBase(page()));
     return;
   }
   res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
