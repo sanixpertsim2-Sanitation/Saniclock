@@ -1357,7 +1357,7 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
     </div>
     <div class="dvWrap">
       <table class="dvTable">
-        <thead><tr><th class="sortable" data-k="person" style="cursor:pointer;user-select:none">Person Name</th><th class="sortable" data-k="pid" style="cursor:pointer;user-select:none">Person ID</th><th class="sortable" data-k="date" style="cursor:pointer;user-select:none">Date</th><th class="sortable" data-k="shift" style="cursor:pointer;user-select:none">Timesheet</th><th class="sortable" data-k="clockIn" style="cursor:pointer;user-select:none">Clock In</th><th class="sortable" data-k="clockOut" style="cursor:pointer;user-select:none">Clock Out</th><th class="sortable" data-k="workMin" style="cursor:pointer;user-select:none">Total Work Time</th><th class="sortable" data-k="otMin" style="cursor:pointer;user-select:none">Total Overtime</th><th class="sortable" data-k="totalMin" style="cursor:pointer;user-select:none">Total Time</th><th class="sortable" data-k="breakMin" style="cursor:pointer;user-select:none">Total Break</th><th class="sortable" data-k="status" style="cursor:pointer;user-select:none">Status</th><th>Payroll card</th></tr></thead>
+        <thead><tr><th class="sortable" data-k="person" style="cursor:pointer;user-select:none">Person Name</th><th>Payroll card</th><th class="sortable" data-k="pid" style="cursor:pointer;user-select:none">Person ID</th><th class="sortable" data-k="date" style="cursor:pointer;user-select:none">Date</th><th class="sortable" data-k="shift" style="cursor:pointer;user-select:none">Timesheet</th><th class="sortable" data-k="clockIn" style="cursor:pointer;user-select:none">Clock In</th><th class="sortable" data-k="clockOut" style="cursor:pointer;user-select:none">Clock Out</th><th class="sortable" data-k="workMin" style="cursor:pointer;user-select:none">Total Work Time</th><th class="sortable" data-k="otMin" style="cursor:pointer;user-select:none">Total Overtime</th><th class="sortable" data-k="totalMin" style="cursor:pointer;user-select:none">Total Time</th><th class="sortable" data-k="breakMin" style="cursor:pointer;user-select:none">Total Break</th><th class="sortable" data-k="status" style="cursor:pointer;user-select:none">Status</th></tr></thead>
         <tbody id="tcRows"></tbody>
       </table>
     </div>
@@ -2409,6 +2409,7 @@ function renderTimecardView(){
     var statusPill=r.status==="absent"?'<span class="dvPill">Absent</span>':r.status==="in"?'<span class="dvPill ot">On floor</span>':'<span class="dvPill">Complete</span>';
     return '<tr>'+
       '<td class="dvName">'+esc(r.person||r.pid)+'</td>'+
+      '<td><button class="btn-ghost" data-card="'+esc(r.pid)+'" data-name="'+esc(r.person||r.pid)+'" style="padding:4px 10px;font-size:12px;white-space:nowrap">Payroll card</button></td>'+
       '<td class="tnum">'+esc(r.pid)+'</td>'+
       '<td class="tnum">'+esc(r.date)+'</td>'+
       '<td>'+esc(r.shift||"—")+'</td>'+
@@ -2419,7 +2420,6 @@ function renderTimecardView(){
       '<td class="tnum">'+(r.workMin?hhmm(r.workMin+30):'<span class="z">—</span>')+'</td>'+
       '<td class="tnum">'+(r.status==="done"?"0:30":'<span class="z">—</span>')+'</td>'+
       '<td>'+statusPill+'</td>'+
-      '<td><button class="btn-ghost" data-card="'+esc(r.pid)+'" data-name="'+esc(r.person||r.pid)+'" style="padding:4px 10px;font-size:12px;white-space:nowrap">Payroll card</button></td>'+
     '</tr>';}).join("");
 }
 
@@ -3370,7 +3370,9 @@ const server = http.createServer((req, res) => {
     const P = biweekPeriodsSrv(); const pr = sel === 'prev' ? P.prev : P.cur;
     const d = buildPayload();
     const recs = (d.records || []).filter(r => String(r.pid || '').toUpperCase() === pid);
-    const period = []; for (let t = pr.s.getTime(); t <= pr.e.getTime(); t += 864e5) { const x = new Date(t); period.push(('0' + (x.getMonth() + 1)).slice(-2) + '/' + ('0' + x.getDate()).slice(-2) + '/' + x.getFullYear()); }
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const capEnd = pr.e.getTime() > today.getTime() ? today : pr.e; const toDate = capEnd !== pr.e;
+    const period = []; for (let t = pr.s.getTime(); t <= capEnd.getTime(); t += 864e5) { const x = new Date(t); period.push(('0' + (x.getMonth() + 1)).slice(-2) + '/' + ('0' + x.getDate()).slice(-2) + '/' + x.getFullYear()); }
     const inSet = new Set(period);
     const shifts = recs.filter(r => inSet.has(r.date) && r.clockInMin != null && r.clockOutMin != null)
       .map(r => ({ date: r.date, ci_m: r.clockInMin, co_m: r.clockOutMin, work_m: r.workMin, total_m: r.totalMin, band: r.pairedBand || r.shiftFamily || r.shift || null }));
@@ -3380,7 +3382,7 @@ const server = http.createServer((req, res) => {
       const raw = execFileSync('/usr/bin/python3', ['/opt/ngteco/payroll_card.py'], { input: JSON.stringify({ person, pid, period, shifts }), timeout: 15000 }).toString('utf8');
       out = JSON.parse(raw);
     } catch (e) { out = { ok: false, error: 'payroll engine failed: ' + ((e && e.message) || e) }; }
-    out.pid = pid; out.periodLabel = fmtPeriodSrv(pr); out.periodDates = period;
+    out.pid = pid; out.periodLabel = fmtPeriodSrv({ s: pr.s, e: capEnd }) + (toDate ? ' (to date)' : ''); out.periodDates = period;
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify(out)); return;
   }
