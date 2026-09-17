@@ -313,7 +313,10 @@ function loadLiveData() {
   const emps = employeeStore.load();
   const shiftByPid = {}, nameByPid = {};
   for (const e of emps) { if (e.pid != null) { shiftByPid[String(e.pid)] = e.shift || ''; nameByPid[String(e.pid)] = e.person || ''; } }
-  const records = punchPair.pairEvents(parsed.events || [], { shiftByPid });
+  var scopedEvents = parsed.events || [];
+  var SCOPE_DEVICE = process.env.FERRERO_DEVICE || '';
+  if (SCOPE_DEVICE) scopedEvents = scopedEvents.filter(function (ev) { var sc = String(ev.source || ''); return sc === SCOPE_DEVICE || sc.toLowerCase() === 'manual'; });
+  const records = punchPair.pairEvents(scopedEvents, { shiftByPid });
   for (const r of records) { if ((!r.person || r.person === r.pid) && nameByPid[r.pid]) r.person = nameByPid[r.pid]; }
   const dates = [...new Set(records.map(r => r.date).filter(Boolean))].sort((a, b) => {
     const pa = a.split('/'), pb = b.split('/');
