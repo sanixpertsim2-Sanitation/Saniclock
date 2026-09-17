@@ -2673,6 +2673,7 @@ $("#cardClose").addEventListener("click",closePayrollCard);
 $("#cardOverlay").addEventListener("click",function(e){if(e.target.id==="cardOverlay")closePayrollCard();});
 document.addEventListener("click",function(e){var b=(e.target&&e.target.closest)?e.target.closest("button[data-card]"):null;if(!b)return;openPayrollCard(b.getAttribute("data-card"),b.getAttribute("data-name")||b.getAttribute("data-card"));});
 (function(){var H=window.HIDE_VIEWS||[];if(!H.length)return;
+  if(H.indexOf('export')>=0){var ew=document.querySelector('.export-wrap');if(ew)ew.remove();}
   H.forEach(function(v){document.querySelectorAll('.navItem[data-view="'+v+'"]').forEach(function(el){el.remove();});});
   document.querySelectorAll('.navGroupLabel').forEach(function(l){var n=l.nextElementSibling;if(!n||n.classList.contains('navGroupLabel'))l.remove();});
   if(H.indexOf(state.view)>=0)setView('dashboard');})();
@@ -3263,7 +3264,7 @@ $("#test").addEventListener("click",function(){var b=this;b.disabled=true;msg("S
 const server = http.createServer((req, res) => {
   const url = (req.url || '/').split('?')[0];
   if (HIDE_VIEWS.length) {
-    const gated = { mend: ['/api/mend-punches'], absence: ['/api/absence-requests'], groups: ['/api/employees', '/api/ngteco/', '/api/mail/'], devices: ['/api/devices'], settings: ['/api/change-password'] };
+    const gated = { mend: ['/api/mend-punches'], absence: ['/api/absence-requests'], groups: ['/api/employees', '/api/ngteco/', '/api/mail/'], devices: ['/api/devices'], settings: ['/api/change-password'], export: ['/api/paysheet.xls', '/api/report/'] };
     for (const v of HIDE_VIEWS) for (const p of (gated[v] || [])) if (url === p || url.startsWith(p)) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'not available' })); return; }
     if (HIDE_VIEWS.indexOf('settings') >= 0 && url === '/api/settings' && req.method !== 'GET') { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'not available' })); return; }
   }
