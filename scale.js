@@ -538,7 +538,7 @@ header{
   backdrop-filter:saturate(170%) blur(16px); -webkit-backdrop-filter:saturate(170%) blur(16px);
   border-bottom:1px solid var(--border);
 }
-.head-in{max-width:1700px;margin:0 auto;padding:13px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.head-in{max-width:none;margin:0 auto;padding:13px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .mark{
   width:66px;height:66px;border-radius:13px;flex:none;display:grid;place-items:center;
@@ -587,7 +587,7 @@ header{
 :root[data-theme="light"] .icon-btn .sun{display:block} :root[data-theme="light"] .icon-btn .moon{display:none}
 
 /* =============================== Main ================================= */
-main{max-width:1700px;margin:0 auto;padding:24px 28px 64px}
+main{max-width:none;margin:0 auto;padding:24px 28px 64px}
 .page-title{margin:2px 0 20px}
 .page-title h1{font-family:var(--serif);font-weight:600;font-size:26px;letter-spacing:.2px;margin:0}
 .page-title p{margin:5px 0 0;color:var(--text-2);font-size:14px}
@@ -828,7 +828,7 @@ td .ndot{display:inline-block;width:7px;height:7px;border-radius:50%;background:
   font-variant-numeric:tabular-nums}
 
 /* ============================== App shell: sidebar + content ============================== */
-.appShell{display:flex;align-items:flex-start;max-width:1440px;margin:0 auto;gap:0}
+.appShell{display:flex;align-items:flex-start;max-width:none;width:100%;margin:0;gap:0}
 .sidebar{
   position:sticky; top:65px; align-self:flex-start;
   width:248px; flex:none; padding:20px 12px 40px;
@@ -875,7 +875,8 @@ td .ndot{display:inline-block;width:7px;height:7px;border-radius:50%;background:
 }
 
 /* ============================== Data-view tables (View Punch / Timecard / Report) ============================== */
-.dvTable{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+.dvWrap{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.dvTable{width:100%;min-width:640px;border-collapse:separate;border-spacing:0;font-size:13px}
 .dvTable thead th{position:sticky;top:0;background:var(--surface-2);z-index:2;
   text-align:left;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:var(--text-3);padding:11px 14px;border-bottom:1px solid var(--border-strong);white-space:nowrap}
