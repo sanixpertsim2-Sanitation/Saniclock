@@ -362,6 +362,18 @@ function loadLiveData() {
     });
   }
   for (const r of records) { if ((!r.person || r.person === r.pid) && nameByPid[r.pid]) r.person = nameByPid[r.pid]; }
+  // Timesheet = NGTeco's own day-change rule, by clock-in time: Day 04:00-11:59, Afternoon 12:00-19:59, else Night.
+  // The punch feed carries no timesheet field and roster labels go stale (a 'Morning' roster entry punching in at
+  // 22:50 was showing as Day), so the clock-in time is the source of truth and the label set is exactly three.
+  const bucket = (typeof timeEngine.shiftByClockIn === 'function') ? timeEngine.shiftByClockIn
+    : function (m) { return (m >= 240 && m < 720) ? 'Day' : ((m >= 720 && m < 1200) ? 'Afternoon' : 'Night'); };
+  for (const r of records) {
+    let m = (typeof r.clockInMin === 'number') ? r.clockInMin : null;
+    if (m == null && r.clockIn) { const t = String(r.clockIn).split(':'); if (t.length >= 2) m = (+t[0] || 0) * 60 + (+t[1] || 0); }
+    r.rosterShift = r.shift || '';
+    if (m != null) r.shift = bucket(m);
+    else if (/morning|day/i.test(r.rosterShift)) r.shift = 'Day';
+  }
   const dates = [...new Set(records.map(r => r.date).filter(Boolean))].sort((a, b) => {
     const pa = a.split('/'), pb = b.split('/');
     return new Date(+pb[2], +pb[0] - 1, +pb[1]) - new Date(+pa[2], +pa[0] - 1, +pa[1]);
