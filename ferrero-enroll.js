@@ -92,7 +92,20 @@ function sign(v) { return v + '.' + crypto.createHmac('sha256', SECRET).update(v
 function verify(t) { if (!t || t.indexOf('.') < 0) return false; const i = t.lastIndexOf('.'); const p = t.slice(0, i), s = t.slice(i + 1); const e = crypto.createHmac('sha256', SECRET).update(p).digest('base64url'); if (s !== e) return false; try { return JSON.parse(Buffer.from(p, 'base64url').toString()).exp > Date.now(); } catch (x) { return false; } }
 function mkToken() { return sign(Buffer.from(JSON.stringify({ r: 'ferrero', exp: Date.now() + 12 * 3600e3 })).toString('base64url')); }
 function cookies(req) { const o = {}; (req.headers.cookie || '').split(/;\s*/).forEach((c) => { const i = c.indexOf('='); if (i > 0) o[c.slice(0, i)] = c.slice(i + 1); }); return o; }
-function authed(req) { return verify(cookies(req).fsid); }
+// A SaniClock admin session (sc_session, Path=/) is accepted here too, so the "Add person" button needs no second login.
+const SC_AUTH = '/opt/saniclock/data/.auth.json';
+function scSessionOk(tok) {
+  try {
+    if (!tok || tok.indexOf('.') < 0) return false;
+    const a = JSON.parse(require('fs').readFileSync(SC_AUTH, 'utf8'));
+    const i = tok.lastIndexOf('.'); const p = tok.slice(0, i), sig = tok.slice(i + 1);
+    const e = crypto.createHmac('sha256', a.secret).update(p).digest('base64url');
+    if (e.length !== sig.length || !crypto.timingSafeEqual(Buffer.from(e), Buffer.from(sig))) return false;
+    const j = JSON.parse(Buffer.from(p, 'base64url').toString('utf8'));
+    return !!j && j.exp > Date.now();
+  } catch (e) { return false; }
+}
+function authed(req) { const c = cookies(req); return verify(c.fsid) || scSessionOk(c.sc_session); }
 function body(req) { return new Promise((res) => { let b = ''; req.on('data', (c) => b += c); req.on('end', () => { try { res(JSON.parse(b || '{}')); } catch (e) { res({}); } }); }); }
 function json(res, code, obj) { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(obj)); }
 
@@ -236,8 +249,8 @@ input:focus{border-color:var(--brand)}
 
 <!-- LOGIN -->
 <div id="loginView"><div class="login">
-  <h1>Ferrero enrollment</h1>
-  <p>Enroll fingerprint, face, or card for Ferrero employees on the TC7 clock. Enter the access password to continue.</p>
+  <h1>Add person &middot; Ferrero</h1>
+  <p>Add a person and enroll fingerprint, face or card on the Ferrero clock. Sign in to SaniClock first (<a href="/login?next=%2Fferrero%2F" style="color:inherit">open sign-in</a>) or enter the access password.</p>
   <label for="pw">Access password</label>
   <input id="pw" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autofocus/>
   <div class="err" id="loginErr"></div>
@@ -249,6 +262,7 @@ input:focus{border-color:var(--brand)}
   <div class="hdr">
     <div class="t"><b>Ferrero &middot; TC7</b><span id="devSub">Loading device&hellip;</span>
       <div class="dev" id="devPills"></div></div>
+    <a class="ghost" id="backBtn" href="/" style="display:inline-flex;align-items:center;text-decoration:none">&larr; SaniClock</a>
     <button class="ghost" id="refreshBtn">Refresh</button>
     <button class="ghost" id="logoutBtn">Sign out</button>
   </div>
@@ -391,7 +405,6 @@ $('#list').addEventListener('click',function(e){
   var emp=STATE.list.filter(function(x){return String(x.code)===String(code);})[0];
   if(!emp)return;
   STATE.pending={code:emp.code,personId:emp.id,name:emp.name,fid:6,type:type,email:emp.email};
-  if(!emp.email||!emp.appAccess){openSetup(emp,type);return;}
   proceedEnroll(type,emp);
 });
 function proceedEnroll(type,emp){
