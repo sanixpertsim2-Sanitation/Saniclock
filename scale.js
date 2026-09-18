@@ -634,6 +634,10 @@ header{
 .live.degraded{border-color:var(--amber-weak);color:var(--amber)} .live.degraded .beat{background:var(--amber)} .live.degraded .beat::after{opacity:0}
 .live.down{border-color:var(--red-line);color:var(--red)} .live.down .beat{background:var(--red)} .live.down .beat::after{opacity:0}
 .clock{font-variant-numeric:tabular-nums;color:var(--text-2);font-size:13px;font-weight:500;white-space:nowrap}
+.install-btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px 0 10px;border-radius:999px;border:1px solid transparent;background:var(--brand,#2f7bff);color:#fff;font-weight:600;font-size:13px;letter-spacing:.01em;cursor:pointer;white-space:nowrap}
+.install-btn svg{width:16px;height:16px}
+.install-btn:hover{filter:brightness(1.08)}
+.install-btn[hidden]{display:none}
 .icon-btn{
   width:38px;height:38px;flex:none;display:grid;place-items:center;cursor:pointer;
   background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text-2);
@@ -1139,6 +1143,9 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
     <div class="agent-pill" title="Agentic operations layer — AI oversight coming online"><span class="ap-dot"></span>Agentic&nbsp;OS <b>initializing</b></div>
     <button class="icon-btn sidebarToggle" id="sidebarToggle" title="Menu" aria-label="Toggle navigation">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <button class="install-btn" id="installBtn" hidden title="Install SaniClock as a desktop app (opens in its own window, pin it to the taskbar)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>Install app
     </button>
     <button class="icon-btn" id="refresh" title="Refresh (R)" aria-label="Refresh data">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
@@ -2796,6 +2803,12 @@ setInterval(function(){load(false);},30000);
 load(false);
 })();
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}
+(function(){var ib=document.getElementById('installBtn');if(!ib)return;var pending=null;
+  var isApp=function(){return matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;};
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();pending=e;if(!isApp())ib.hidden=false;});
+  ib.addEventListener('click',function(){if(!pending)return;pending.prompt();pending.userChoice.then(function(){pending=null;ib.hidden=true;});});
+  window.addEventListener('appinstalled',function(){pending=null;ib.hidden=true;});
+})();
 </script>
 <style id="prem-motion">
 :root{--ease-expo:cubic-bezier(.16,1,.3,1);--ease-quint:cubic-bezier(.22,1,.36,1)}
