@@ -1153,6 +1153,12 @@ header{padding-top:env(safe-area-inset-top)}
   .dvToolbar .search{max-width:none;flex:1 1 100%}
 }
 @media(max-width:480px){
+  /* Data-view tables (Punch / Timecard / Report) become labelled cards like the dashboard table: no sideways scroll. */
+  .dvTable{min-width:0}
+  .dvWrap{overflow:visible}
+  .dvTable tbody td{white-space:normal;padding:6px 14px;border-bottom:0}
+  .dvTable tbody td:empty{display:none}
+  .dvTable tbody td .btn-ghost{margin-left:auto}
   #themeBtn{display:none}
   .live #liveTxt{display:none}
   .live{padding:5px 7px}
@@ -2851,6 +2857,12 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
   });
   document.addEventListener('click',function(e){if(help&&!help.hidden&&!help.contains(e.target)&&!ib.contains(e.target))help.hidden=true;});
   window.addEventListener('appinstalled',function(){pending=null;ib.hidden=true;if(help)help.hidden=true;});
+})();
+/* Phone card layout reads each cell's label from data-label; the data-view renderers do not set it, so copy the column
+   headers in after every render (childList only, so setting the attribute cannot re-trigger the observer). */
+(function(){function label(t){var hs=[].map.call(t.querySelectorAll('thead th'),function(h){return h.textContent.replace(/[\u25B2\u25BC\u2191\u2193]/g,'').trim();});
+    [].forEach.call(t.querySelectorAll('tbody tr'),function(tr){[].forEach.call(tr.children,function(td,i){if(hs[i]&&td.getAttribute('data-label')!==hs[i])td.setAttribute('data-label',hs[i]);});});}
+  [].forEach.call(document.querySelectorAll('table.dvTable'),function(t){label(t);new MutationObserver(function(){label(t);}).observe(t,{childList:true,subtree:true});});
 })();
 </script>
 <style id="prem-motion">
