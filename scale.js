@@ -1818,12 +1818,16 @@ function clockInMs(r){var dp=parseDate(r.date);if(!dp)return null;
   return new Date(dp.getFullYear(),dp.getMonth(),dp.getDate(),+tp[0]||0,+tp[1]||0,+(tp[2]||0)).getTime();}
 var MAX_LIVE_MS=16*3600*1000;
 // returns elapsed ms if the punch is *plausibly live*, else null
+/* On the floor = clocked in, still open, and the shift has not ended (end + 30 min grace, judged by the clock-in band).
+   No calendar-date test: a night shift that started on the 17th is still on the floor at 00:30 on the 18th.
+   Past the shift end the same open record is a punch-out missed until it is closed. */
 function liveElapsed(r){
   if(r.status!=="in"||r.missingIn)return null;
-  if(!sameAsRealToday(r.date))return null;      // not the real current local date
   var ms=clockInMs(r);if(ms==null)return null;
   var e=Date.now()-ms;
-  if(e<0||e>=MAX_LIVE_MS)return null;           // impossible / stale (>16h)
+  if(e<0||e>=MAX_LIVE_MS)return null;
+  var end=shiftEndMs(r);
+  if(end!=null&&Date.now()>=end+OVERDUE_GRACE_MS)return null;
   return e;}
 function isLive(r){return liveElapsed(r)!=null;}
 function isMissingOut(r){return r.status==="in"&&!r.missingIn&&!isLive(r);}   // open but not live => missing clock-out
@@ -1833,7 +1837,7 @@ var BAND_END={Day:900,Afternoon:1380,Night:420},OVERDUE_GRACE_MS=30*60000;
    04:00-11:59 Day, 12:00-19:59 Afternoon, otherwise Night. */
 function bandByClockIn(r){var m=(typeof r.clockInMin==="number")?r.clockInMin:null;if(m==null){var t=String(r.clockIn||"").split(":");if(t.length>=2)m=(+t[0]||0)*60+(+t[1]||0);}if(m==null)return catOf(r.shift,r);if(m>=240&&m<720)return "Day";if(m>=720&&m<1200)return "Afternoon";return "Night";}
 function shiftEndMs(r){var dp=parseDate(r.date);if(!dp)return null;var b=bandByClockIn(r);var end=BAND_END[b];if(end==null)return null;var ms=new Date(dp.getFullYear(),dp.getMonth(),dp.getDate(),0,0,0).getTime()+end*60000;var cm=(typeof r.clockInMin==="number")?r.clockInMin:1200;if(b==="Night"&&cm>=240)ms+=86400000;return ms;}
-function isOverdueOut(r){if(r.status!=="in"||r.missingIn)return false;var ms=clockInMs(r);if(ms==null)return false;var age=Date.now()-ms;if(age<0||age>=MAX_LIVE_MS)return false;var end=shiftEndMs(r);if(end==null)return false;return Date.now()>=end+OVERDUE_GRACE_MS;}
+function isOverdueOut(r){if(r.status!=="in"||r.missingIn)return false;var ms=clockInMs(r);if(ms==null)return false;if(Date.now()<ms)return false;var end=shiftEndMs(r);if(end==null)return false;return Date.now()>=end+OVERDUE_GRACE_MS;}
 function overdueBy(r){var end=shiftEndMs(r);var m=end?Math.max(0,Math.round((Date.now()-end)/60000)):0;return Math.floor(m/60)+"h "+(m%60)+"m";}
 
 /* ---- Phase-1 flags (from our engine, delivered per-record) ---- */
@@ -1872,7 +1876,10 @@ function isoLabel(iso){if(!iso)return "";var p=String(iso).split("-");if(p.lengt
   var dt=new Date(+p[0],+p[1]-1,+p[2]);return MO[dt.getMonth()]+" "+dt.getDate();}
 
 /* ---- data slices ---- */
-function recsFor(date){var a=DATA.records||[],o=[];for(var i=0;i<a.length;i++)if(a[i].date===date)o.push(a[i]);return o;}
+function attendanceDayMDY(){var d=new Date(Date.now()-7*3600e3);return ("0"+(d.getMonth()+1)).slice(-2)+"/"+("0"+d.getDate()).slice(-2)+"/"+d.getFullYear();}
+function nextMDY(mdy){var p=parseDate(mdy);if(!p)return "";p.setDate(p.getDate()+1);return ("0"+(p.getMonth()+1)).slice(-2)+"/"+("0"+p.getDate()).slice(-2)+"/"+p.getFullYear();}
+function prevDayRec(r){if(r.status==="absent"||!r.clockIn)return false;var m=(typeof r.clockInMin==="number")?r.clockInMin:null;if(m==null){var t=String(r.clockIn).split(":");if(t.length>=2)m=(+t[0]||0)*60+(+t[1]||0);}return m!=null&&m<420&&r.shift!=="Day";}
+function recsFor(date){var a=DATA.records||[],o=[],nx=nextMDY(date);for(var i=0;i<a.length;i++){var r=a[i];if(r.date===date){if(!prevDayRec(r))o.push(r);}else if(r.date===nx&&prevDayRec(r))o.push(r);}return o;}
 function statOf(recs){var s={sched:recs.length,present:0,live:0,done:0,absent:0,work:0,ot:0,brk:0,abn:0,miss:0,
     net:0,night:0,flags:0,fMiss:0,fMeal:0,fAnom:0,fRound:0};
   for(var i=0;i<recs.length;i++){var r=recs[i];
@@ -2219,6 +2226,8 @@ function render(){
     $("#foot").innerHTML="Live · syncing every minute · no punches recorded yet";
     return;
   }
+  var ad=attendanceDayMDY();
+  if(!state.datePicked&&dates.indexOf(ad)>=0)state.date=ad;
   if(!state.date||dates.indexOf(state.date)<0)state.date=dates[0];
   var recs=recsFor(state.date);var all=recs.length;var q=state.q.trim();
   $("#dayTitle").textContent=fullDate(state.date);
@@ -2258,7 +2267,7 @@ function load(manual){
     if(state.firstLoad)$("#alert").innerHTML='<div class="alert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/></svg><div>Could not reach the server. Retrying…</div></div>';});}
 
 /* ================= events ================= */
-$("#dates").addEventListener("click",function(e){var b=e.target.closest(".date-pill");if(!b)return;state.date=b.getAttribute("data-d");render();});
+$("#dates").addEventListener("click",function(e){var b=e.target.closest(".date-pill");if(!b)return;state.date=b.getAttribute("data-d");state.datePicked=true;render();});
 $("#chips").addEventListener("click",function(e){var b=e.target.closest(".chip");if(!b)return;var s=b.getAttribute("data-sh");state.shift=(s==="ALL")?null:s;render();});
 $("#donutLegend").addEventListener("click",function(e){var b=e.target.closest(".lgi");if(!b)return;var s=b.getAttribute("data-shift");state.shift=state.shift===s?null:s;render();});
 $("#donutLegend").addEventListener("keydown",function(e){if(e.key!=="Enter"&&e.key!==" ")return;var b=e.target.closest(".lgi");if(!b)return;e.preventDefault();var s=b.getAttribute("data-shift");state.shift=state.shift===s?null:s;render();});
@@ -2377,7 +2386,7 @@ document.addEventListener("keydown",function(e){
   if((e.key==="r"||e.key==="R")&&!e.metaKey&&!e.ctrlKey){e.preventDefault();load(true);return;}
   if(e.key==="ArrowLeft"||e.key==="ArrowRight"){var i=(DATA.dates||[]).indexOf(state.date);if(i<0)return;
     var ni=i+(e.key==="ArrowRight"?-1:1); // dates are newest-first: Right = newer, Left = older
-    if(ni>=0&&ni<DATA.dates.length){state.date=DATA.dates[ni];e.preventDefault();render();}}});
+    if(ni>=0&&ni<DATA.dates.length){state.date=DATA.dates[ni];state.datePicked=true;e.preventDefault();render();}}});
 
 /* skeleton, then boot */
 (function(){var s="";for(var i=0;i<8;i++)s+='<div class="sk"></div>';$("#kpis").innerHTML=s;})();
@@ -3264,7 +3273,7 @@ function loadToday(){
   j("/api/punches").then(function(d){
     PUNCH=(d.records||[]).filter(function(r){return r.date===latestDate(d.records)});
     var present=PUNCH.filter(function(r){return r.status==="done"||r.status==="in"}).length;
-    var _td=new Date(),_ts=("0"+(_td.getMonth()+1)).slice(-2)+"/"+("0"+_td.getDate()).slice(-2)+"/"+_td.getFullYear();var onFloor=PUNCH.filter(function(r){return r.status==="in"&&r.date===_ts}).length;
+    var _td=new Date(Date.now()-7*3600e3),_ts=("0"+(_td.getMonth()+1)).slice(-2)+"/"+("0"+_td.getDate()).slice(-2)+"/"+_td.getFullYear();var onFloor=PUNCH.filter(function(r){return r.status==="in"&&r.date===_ts}).length;
     var absent=PUNCH.filter(function(r){return r.status==="absent"}).length;
     var roster=PUNCH.length;
     $("#today").textContent=fmtDate(latestDate(d.records));
