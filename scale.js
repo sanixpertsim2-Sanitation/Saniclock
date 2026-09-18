@@ -1131,6 +1131,32 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
 }
 :root[data-theme="dark"] body{background-color:#07090f;background-image:linear-gradient(160deg,rgba(4,7,15,.60),rgba(4,7,15,.40) 55%,rgba(4,7,15,.55)),url("/stage-bg.png?v=2");background-size:cover;background-position:center;background-attachment:fixed;background-repeat:no-repeat}
 :root[data-theme="dark"] .kpi,:root[data-theme="dark"] .panel{background:rgba(13,16,22,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+/* Phones and the installed app: the header clears the notch/status bar (env(safe-area-inset-top) is 0 on desktop),
+   stays on ONE row with the menu button first, and the side navigation opens below the status bar. */
+header{padding-top:env(safe-area-inset-top)}
+@media(max-width:680px){
+  .head-in{flex-wrap:nowrap;gap:8px;padding:10px 12px}
+  .spacer{display:none}
+  .sidebarToggle{order:-1;flex:none}
+  .brand{flex:1;min-width:0;gap:8px}
+  .brand .mark{width:34px;height:40px}
+  .wordmark b{font-size:22px}
+  .wordmark > span{display:none}
+  .clock{display:none}
+  .live{padding:5px 9px;font-size:11px;gap:6px;flex:none}
+  .install-btn{flex:none;height:36px;width:36px;padding:0;justify-content:center;font-size:0;gap:0;border-radius:10px}
+  .install-btn svg{width:18px;height:18px}
+  .icon-btn{width:36px;height:36px;flex:none}
+  .sidebar{padding-top:calc(70px + env(safe-area-inset-top));height:100dvh}
+  .content{padding:16px 12px calc(56px + env(safe-area-inset-bottom))}
+  .install-help{top:calc(64px + env(safe-area-inset-top))}
+  .dvToolbar .search{max-width:none;flex:1 1 100%}
+}
+@media(max-width:480px){
+  #themeBtn{display:none}
+  .live #liveTxt{display:none}
+  .live{padding:5px 7px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
