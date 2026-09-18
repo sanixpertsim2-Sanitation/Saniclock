@@ -643,6 +643,16 @@ header{
 .install-help p{margin:0 0 7px}
 .install-help p:last-child{margin-bottom:0}
 .install-help[hidden]{display:none}
+/* Rolling strip under the header: attendance day, shift live now, current pay period. */
+.ticker{overflow:hidden;white-space:nowrap;height:32px;line-height:32px;font-size:12.5px;font-weight:600;color:var(--text-2);
+  background:color-mix(in srgb,var(--accent) 9%,var(--surface));border-bottom:1px solid var(--border)}
+.ticker-track{display:inline-block;padding-left:100%;animation:tickerMove var(--ticker-dur,40s) linear infinite;will-change:transform}
+.ticker-track b{color:var(--text)}
+.ticker-track .tsep{margin:0 18px;opacity:.45;font-size:9px;vertical-align:middle}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ticker-track:empty{display:none}
+@keyframes tickerMove{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.ticker-track{animation:none;padding-left:16px}}
 .people-list{max-height:62vh;overflow:auto;padding-right:4px}
 .people-list .overdue-item{margin-bottom:6px}
 .icon-btn{
@@ -1205,6 +1215,7 @@ header{padding-top:env(safe-area-inset-top)}
     </a>
   </div>
 </header>
+<div class="ticker" id="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
 
 <main>
 <div class="sidebarScrim" id="sidebarScrim"></div>
@@ -2234,7 +2245,7 @@ function render(){
   var recs=recsFor(state.date);var all=recs.length;var q=state.q.trim();
   $("#dayTitle").textContent=fullDate(state.date);
   $("#daySub").textContent=all+" scheduled shift"+(all===1?"":"s")+(q?' · matching "'+q+'"':"");
-  renderDates();renderChips(recs);renderKpis(recs);
+  renderDates();renderChips(recs);renderKpis(recs);try{renderTicker(recs);}catch(_te){}
   trendChart();donutChart(recs);hoursChart(recs);histChart(recs);
   renderFloor(recs);renderExceptions(recs);
   renderHead();renderFilterChip();renderTable(recs);
@@ -2819,6 +2830,17 @@ function openPeopleList(title,recs){
   $("#cardOverlay").hidden=false;}
 var KPI_LIST_TITLE={live:"On the floor now",all:"Present",done:"Completed shifts",exception:"Exceptions"};
 function openKpiList(seg){var recs=filterBase(recsFor(state.date)).filter(segMatch);if(seg==="all")recs=recs.filter(function(r){return r.status!=="absent";});if(KPI_LIST_TITLE[seg])openPeopleList(KPI_LIST_TITLE[seg],recs);}
+function currentShiftName(){var d=new Date();var m=d.getHours()*60+d.getMinutes();return (m>=420&&m<900)?"Day":((m>=900&&m<1380)?"Afternoon":"Night");}
+function mdyFromYmd(y){var v=String(y);return v.length===8?v.slice(4,6)+"/"+v.slice(6,8)+"/"+v.slice(0,4):"";}
+function renderTicker(recs){var t=$("#tickerTrack");if(!t)return;var s=statOf(recs);var P=biweekPeriods();
+  var today=parseDate(mdyFromYmd(ymdOfDate(new Date()))),pe=parseDate(mdyFromYmd(P.cur.e));var left=(today&&pe)?Math.round((pe-today)/864e5):-1;
+  var isNow=(state.date===attendanceDayMDY());
+  var parts=['Attendance day <b>'+esc(fullDate(state.date))+'</b>',
+    isNow?('<b>'+currentShiftName()+' shift</b> live now &middot; <b>'+s.live+'</b> on the floor'+(s.done?' &middot; '+s.done+' completed':'')):('past day &middot; <b>'+s.done+'</b> completed'),
+    'Current pay period <b>'+esc(fullDate(mdyFromYmd(P.cur.s)))+' &ndash; '+esc(fullDate(mdyFromYmd(P.cur.e)))+'</b>'+(left>0?' &middot; ends in '+left+' day'+(left===1?'':'s'):(left===0?' &middot; last day today':'')),
+    'Previous pay period '+esc(fullDate(mdyFromYmd(P.prev.s)))+' &ndash; '+esc(fullDate(mdyFromYmd(P.prev.e)))];
+  var html=parts.join('<span class="tsep">&#9679;</span>');
+  if(t.getAttribute("data-html")!==html){t.innerHTML=html;t.setAttribute("data-html",html);t.style.setProperty("--ticker-dur",Math.max(30,Math.round(t.textContent.length/5))+"s");}}
 function closePayrollCard(){$("#cardOverlay").hidden=true;}
 $("#cardClose").addEventListener("click",closePayrollCard);
 $("#cardOverlay").addEventListener("click",function(e){if(e.target.id==="cardOverlay")closePayrollCard();});

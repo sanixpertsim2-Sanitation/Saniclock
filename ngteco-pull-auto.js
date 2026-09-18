@@ -151,7 +151,7 @@ const toRow = (rec) => [esc(rec.employee_code), esc(rec.employee_name || rec.emp
   for (const k of Object.keys(store)) { const d = ymd(store[k].att_date); if (d && d < KEEP_FROM) delete store[k]; }
   fs.writeFileSync(STORE, JSON.stringify(store));
   const union = Object.values(store).sort((a, b) => (ymd(a.att_date) + ' ' + a.attendance_status).localeCompare(ymd(b.att_date) + ' ' + b.attendance_status));
-  log('Fetched ' + fetched + '/' + total + ' account rows, ' + added + ' new; union in window ' + union.length + '; manual rows ' + union.filter(x => !/^[A-Z]{3}\\d{10}$/.test(String(x.punch_from || ''))).length);
+  log('Fetched ' + fetched + '/' + total + ' account rows, ' + added + ' new; union in window ' + union.length + '; manual rows ' + union.filter(x => !/^[A-Z]{3}[0-9]{10}$/.test(String(x.punch_from || ''))).length);
   // Punches mended in NGTeco arrive with punch_from 'manual' (no device). They must reach the dashboard or a mended
   // shift stays open forever, so route each one to the site(s) where that employee punches on the device.
   const isDevice = (pf) => TARGETS.some(t => t.dev === pf) || /^[A-Z]{3}\d{10}$/.test(pf);
