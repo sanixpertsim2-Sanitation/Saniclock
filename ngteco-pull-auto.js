@@ -109,7 +109,9 @@ async function ensureScoped() {
 }
 
 function daysAgo(n) { const d = new Date(Date.now() - n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-const START = process.argv[2] || daysAgo(3), END = process.argv[3] || daysAgo(0);
+// PULL_DAYS: how far back this run fetches (3 for the 30-second live pull, 30 for the 10-minute backfill).
+// KEEP_DAYS: how long rows stay in the union store and therefore in the dashboards (covers current + previous pay period).
+const START = process.argv[2] || daysAgo(+(process.env.PULL_DAYS || 3)), END = process.argv[3] || daysAgo(0);
 
 function getPage(token, page) {
   const q = 'current=' + page + '&pageSize=100&keyword=&date_range=' + START + '&date_range=' + END;
@@ -147,7 +149,7 @@ const toRow = (rec) => [esc(rec.employee_code), esc(rec.employee_name || rec.emp
   let added = 0;
   for (const x of recs) { const k = x.id || (x.employee_code + '|' + x.punch_format_time); if (!store[k]) added++; store[k] = { employee_code: x.employee_code, employee_name: x.employee_name, att_date: x.att_date, attendance_status: x.attendance_status, verify_type: x.verify_type, punch_from: x.punch_from }; }
   // The API filters date_range in UTC, so a window starting 09/14 also returns 09/13 evening (EDT) rows; keep one day of slack.
-  const KEEP_FROM = daysAgo(4);
+  const KEEP_FROM = daysAgo(+(process.env.KEEP_DAYS || 31));
   for (const k of Object.keys(store)) { const d = ymd(store[k].att_date); if (d && d < KEEP_FROM) delete store[k]; }
   fs.writeFileSync(STORE, JSON.stringify(store));
   const union = Object.values(store).sort((a, b) => (ymd(a.att_date) + ' ' + a.attendance_status).localeCompare(ymd(b.att_date) + ' ' + b.attendance_status));
