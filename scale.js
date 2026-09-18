@@ -638,6 +638,9 @@ header{
 .install-btn svg{width:16px;height:16px}
 .install-btn:hover{filter:brightness(1.08)}
 .install-btn[hidden]{display:none}
+a.install-btn{text-decoration:none}
+.install-btn.add-person{background:var(--surface);color:var(--text);border-color:var(--border-strong)}
+.install-btn.add-person:hover{border-color:var(--accent);color:var(--accent)}
 .install-help{position:fixed;top:72px;right:18px;z-index:60;width:min(380px,calc(100vw - 32px));padding:14px 16px;border-radius:14px;background:var(--surface,#0e1424);border:1px solid var(--line2,rgba(143,208,255,.24));box-shadow:0 18px 48px rgba(0,0,0,.45);color:var(--text,#eaf0fb);font-size:13px;line-height:1.45}
 .install-help b{display:block;font-size:14px;margin-bottom:8px}
 .install-help p{margin:0 0 7px}
@@ -1193,6 +1196,9 @@ header{padding-top:env(safe-area-inset-top)}
     <button class="icon-btn sidebarToggle" id="sidebarToggle" title="Menu" aria-label="Toggle navigation">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
+    <a class="install-btn add-person" id="addPersonBtn" href="/ferrero/" title="Add a person and enroll fingerprint, face or card on the Ferrero clock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Add person
+    </a>
     <button class="install-btn" id="installBtn" title="Install SaniClock as a desktop app (opens in its own window, pin it to the taskbar)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>Install app
     </button>
@@ -2847,6 +2853,7 @@ $("#cardOverlay").addEventListener("click",function(e){if(e.target.id==="cardOve
 document.addEventListener("click",function(e){var b=(e.target&&e.target.closest)?e.target.closest("button[data-card]"):null;if(!b)return;openPayrollCard(b.getAttribute("data-card"),b.getAttribute("data-name")||b.getAttribute("data-card"));});
 (function(){var H=window.HIDE_VIEWS||[];if(!H.length)return;
   if(H.indexOf('export')>=0){var ew=document.querySelector('.export-wrap');if(ew)ew.remove();}
+  if(H.indexOf('groups')>=0){var ap=document.getElementById('addPersonBtn');if(ap)ap.remove();}
   H.forEach(function(v){document.querySelectorAll('.navItem[data-view="'+v+'"]').forEach(function(el){el.remove();});});
   document.querySelectorAll('.navGroupLabel').forEach(function(l){var n=l.nextElementSibling;if(!n||n.classList.contains('navGroupLabel'))l.remove();});
   if(H.indexOf(state.view)>=0)setView('dashboard');})();
