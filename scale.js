@@ -643,6 +643,8 @@ header{
 .install-help p{margin:0 0 7px}
 .install-help p:last-child{margin-bottom:0}
 .install-help[hidden]{display:none}
+.people-list{max-height:62vh;overflow:auto;padding-right:4px}
+.people-list .overdue-item{margin-bottom:6px}
 .icon-btn{
   width:38px;height:38px;flex:none;display:grid;place-items:center;cursor:pointer;
   background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text-2);
@@ -2002,7 +2004,7 @@ function renderKpis(recs){
   var series=presentSeries();var arr=series.map(function(d){return d.present;});
   var selIdx=series.map(function(d){return d.date;}).indexOf(state.date);
   var rate=s.sched?Math.round(s.present/s.sched*100):0;
-  var floorSub=s.live?(s.live+" on shift now"):(sameAsRealToday(state.date)?"floor is clear":"not a live date");
+  var floorSub=s.live?(s.live+" on shift now"):((state.date===attendanceDayMDY())?"floor is clear":"not a live date");
 
   /* Tile 5 — Payable Hours (OURS netMin) vs CSV workMin reference */
   var payDelta=s.net-s.work; // >1 => CSV under-credited, <-1 => CSV over-counted
@@ -2058,7 +2060,7 @@ function renderFloor(recs){
   $("#inCount").textContent=list.length;
   if(!list.length){
     var msg=(state.shift||state.q)?"No one on the floor matches this filter"
-      :(sameAsRealToday(state.date)?"No one is currently clocked in":"This is a past report date — no live shifts");
+      :((state.date===attendanceDayMDY())?"No one is currently clocked in":"This is a past report date — no live shifts");
     $("#floor").innerHTML='<div class="panel"><div class="empty">'+
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'+
       '<div class="t">'+msg+'</div><div>All punches for this day are closed out.</div></div></div>';
@@ -2273,7 +2275,8 @@ $("#donutLegend").addEventListener("click",function(e){var b=e.target.closest(".
 $("#donutLegend").addEventListener("keydown",function(e){if(e.key!=="Enter"&&e.key!==" ")return;var b=e.target.closest(".lgi");if(!b)return;e.preventDefault();var s=b.getAttribute("data-shift");state.shift=state.shift===s?null:s;render();});
 $("#statusSeg").addEventListener("click",function(e){var b=e.target.closest(".seg");if(!b)return;state.seg=b.getAttribute("data-seg");render();});
 $("#kpis").addEventListener("click",function(e){var t=e.target.closest(".kpi[data-seg]");if(!t)return;state.seg=t.getAttribute("data-seg");render();
-  var tbl=$(".roster");if(tbl&&state.seg==="exception")$("#excSec").scrollIntoView({behavior:"smooth",block:"start"});});
+  var tbl=$(".roster");if(tbl&&state.seg==="exception")$("#excSec").scrollIntoView({behavior:"smooth",block:"start"});
+  openKpiList(state.seg);});
 $("#kpis").addEventListener("keydown",function(e){if(e.key!=="Enter"&&e.key!==" ")return;var t=e.target.closest(".kpi[data-seg]");if(!t)return;e.preventDefault();state.seg=t.getAttribute("data-seg");render();});
 $("#thead").addEventListener("click",function(e){var th=e.target.closest("th");if(!th)return;var k=th.getAttribute("data-k");
   if(state.sort.key===k)state.sort.dir*=-1;else{state.sort.key=k;state.sort.dir=NUMK[k]?-1:1;}
@@ -2808,6 +2811,14 @@ function openPayrollCard(pid,name){
     $("#cardBody").innerHTML=h;
   }).catch(function(){$("#cardBody").innerHTML='<div class="modal-err">Network error.</div>';});
 }
+function openPeopleList(title,recs){
+  $("#cardTitle").textContent=title+" ("+recs.length+")";
+  if(!recs.length){$("#cardBody").innerHTML='<div class="empty"><div class="t">No one in this list right now.</div></div>';}
+  else{$("#cardBody").innerHTML='<div class="overdue-list people-list">'+recs.map(function(r){var k=catOf(r.shift,r);var ci=r.missingIn?"":r.clockIn,co=r.missingIn?r.clockIn:r.clockOut;
+    return '<div class="overdue-item"><span class="av" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><strong>'+esc(r.person||r.pid)+'</strong><span class="oid">'+esc(r.pid)+'</span><span class="sh"><span class="sdot" style="background:'+cv(k)+'"></span>'+esc(r.shift||k)+'</span><span>'+(ci?'in '+esc(clk(ci)):'')+(co?(ci?' &middot; ':'')+'out '+esc(clk(co)):'')+'</span>'+statusPill(r)+'</div>';}).join("")+'</div>';}
+  $("#cardOverlay").hidden=false;}
+var KPI_LIST_TITLE={live:"On the floor now",all:"Present",done:"Completed shifts",exception:"Exceptions"};
+function openKpiList(seg){var recs=filterBase(recsFor(state.date)).filter(segMatch);if(seg==="all")recs=recs.filter(function(r){return r.status!=="absent";});if(KPI_LIST_TITLE[seg])openPeopleList(KPI_LIST_TITLE[seg],recs);}
 function closePayrollCard(){$("#cardOverlay").hidden=true;}
 $("#cardClose").addEventListener("click",closePayrollCard);
 $("#cardOverlay").addEventListener("click",function(e){if(e.target.id==="cardOverlay")closePayrollCard();});
