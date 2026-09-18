@@ -638,6 +638,11 @@ header{
 .install-btn svg{width:16px;height:16px}
 .install-btn:hover{filter:brightness(1.08)}
 .install-btn[hidden]{display:none}
+.install-help{position:fixed;top:72px;right:18px;z-index:60;width:min(380px,calc(100vw - 32px));padding:14px 16px;border-radius:14px;background:var(--surface,#0e1424);border:1px solid var(--line2,rgba(143,208,255,.24));box-shadow:0 18px 48px rgba(0,0,0,.45);color:var(--text,#eaf0fb);font-size:13px;line-height:1.45}
+.install-help b{display:block;font-size:14px;margin-bottom:8px}
+.install-help p{margin:0 0 7px}
+.install-help p:last-child{margin-bottom:0}
+.install-help[hidden]{display:none}
 .icon-btn{
   width:38px;height:38px;flex:none;display:grid;place-items:center;cursor:pointer;
   background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text-2);
@@ -1144,9 +1149,16 @@ tbody tr{animation:rowIn .45s cubic-bezier(.16,1,.3,1) both}
     <button class="icon-btn sidebarToggle" id="sidebarToggle" title="Menu" aria-label="Toggle navigation">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
-    <button class="install-btn" id="installBtn" hidden title="Install SaniClock as a desktop app (opens in its own window, pin it to the taskbar)">
+    <button class="install-btn" id="installBtn" title="Install SaniClock as a desktop app (opens in its own window, pin it to the taskbar)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>Install app
     </button>
+    <div class="install-help" id="installHelp" hidden>
+      <b>Install SaniClock as a desktop app</b>
+      <p><strong>Chrome:</strong> click the install icon at the right end of the address bar (a small monitor with an arrow), or menu &#8942; &rarr; <em>Cast, save and share</em> &rarr; <em>Install page as app</em>.</p>
+      <p><strong>Edge:</strong> menu &hellip; &rarr; <em>Apps</em> &rarr; <em>Install this site as an app</em>.</p>
+      <p><strong>Already installed?</strong> Open it from the Start menu, then right-click its taskbar icon &rarr; <em>Pin to taskbar</em>.</p>
+      <p><strong>Phone:</strong> Chrome menu &rarr; <em>Add to Home screen</em>. iPhone: Safari Share &rarr; <em>Add to Home Screen</em>.</p>
+    </div>
     <button class="icon-btn" id="refresh" title="Refresh (R)" aria-label="Refresh data">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v5h-5"/></svg>
     </button>
@@ -2803,11 +2815,16 @@ setInterval(function(){load(false);},30000);
 load(false);
 })();
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}
-(function(){var ib=document.getElementById('installBtn');if(!ib)return;var pending=null;
+(function(){var ib=document.getElementById('installBtn'),help=document.getElementById('installHelp');if(!ib)return;var pending=null;
   var isApp=function(){return matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;};
-  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();pending=e;if(!isApp())ib.hidden=false;});
-  ib.addEventListener('click',function(){if(!pending)return;pending.prompt();pending.userChoice.then(function(){pending=null;ib.hidden=true;});});
-  window.addEventListener('appinstalled',function(){pending=null;ib.hidden=true;});
+  if(isApp())ib.hidden=true;
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();pending=e;});
+  ib.addEventListener('click',function(){
+    if(pending){pending.prompt();pending.userChoice.then(function(){pending=null;ib.hidden=true;});return;}
+    if(help)help.hidden=!help.hidden;
+  });
+  document.addEventListener('click',function(e){if(help&&!help.hidden&&!help.contains(e.target)&&!ib.contains(e.target))help.hidden=true;});
+  window.addEventListener('appinstalled',function(){pending=null;ib.hidden=true;if(help)help.hidden=true;});
 })();
 </script>
 <style id="prem-motion">
