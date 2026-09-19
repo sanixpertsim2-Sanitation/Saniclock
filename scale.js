@@ -2237,11 +2237,12 @@ function renderDates(){
     return '<button class="date-pill" role="tab" data-d="'+esc(d)+'" aria-selected="'+(d===state.date)+'"><small>'+dLabel(d)+'</small>'+dSub(d)+'</button>';}).join("");
   var active=$('#dates [aria-selected="true"]');if(active)active.scrollIntoView({inline:"center",block:"nearest"});}
 
-function renderOverdue(){var sec=$("#overdueSec");if(!sec)return;var list=(DATA.records||[]).filter(isOverdueOut);
+function recentRecs(){var cut=ymdOfDate(new Date(Date.now()-3*864e5));return (DATA.records||[]).filter(function(r){return ymdOf(r.date)>=cut;});}
+function renderOverdue(){var sec=$("#overdueSec");if(!sec)return;var list=recentRecs().filter(isOverdueOut);
   sec.hidden=!list.length;$("#overdueCount").textContent=list.length;
   $("#overdueList").innerHTML=list.map(function(r){var k=catOf(r.shift,r);
     return '<div class="overdue-item"><span class="av" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><strong>'+esc(r.person||r.pid)+'</strong><span class="oid">'+esc(r.pid)+'</span><span class="sh"><span class="sdot" style="background:'+cv(k)+'"></span>'+esc(r.shift||k)+'</span><span>in '+esc(r.clockIn?clk(r.clockIn):"")+' on '+esc(r.date)+'</span><span class="over">no clock-out, '+overdueBy(r)+' past shift end</span></div>';}).join("");
-  var ms=$("#missinSec");if(ms){var ml=(DATA.records||[]).filter(function(r){return !!r.missingIn;});ms.hidden=!ml.length;$("#missinCount").textContent=ml.length;
+  var ms=$("#missinSec");if(ms){var ml=recentRecs().filter(function(r){return !!r.missingIn;});ms.hidden=!ml.length;$("#missinCount").textContent=ml.length;
     $("#missinList").innerHTML=ml.map(function(r){var k=catOf(r.shift,r);return '<div class="overdue-item"><span class="av" style="'+avatarStyle(r.person)+'">'+esc(initials(r.person))+'</span><strong>'+esc(r.person||r.pid)+'</strong><span class="oid">'+esc(r.pid)+'</span><span class="sh"><span class="sdot" style="background:'+cv(k)+'"></span>'+esc(r.shift||k)+'</span><span>out '+esc(r.clockIn?clk(r.clockIn):"")+' on '+esc(r.date)+'</span><span class="over">no clock-in recorded</span></div>';}).join("");}}
 
 /* ================= master render ================= */
