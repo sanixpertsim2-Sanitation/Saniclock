@@ -395,6 +395,19 @@ function loadLiveData() {
     const dS = cdist(m, SH_START[U]), dE = cdist(m, SH_END[U]);
     if (dE < dS && dE <= 240) { r.missingIn = true; r.shift = U; }
   }
+  // Roster self-heals: anyone punching on this device who is not in Group Management yet is added with the shift
+  // they actually work, so the roster never lags behind the clock (32 Ferrero punchers were missing on 2026-09-19).
+  try {
+    const known = new Set(emps.map(e => String(e.pid).toUpperCase()));
+    const fresh = new Map();
+    for (const r of records) { const k = String(r.pid || '').toUpperCase(); if (k && !known.has(k) && !fresh.has(k)) fresh.set(k, r); }
+    if (fresh.size) {
+      const fac = (settingsStore.load().facilityName) || 'Ferrero';
+      const lab = { Day: 'Morning', Afternoon: 'Afternoon', Night: 'Night' };
+      for (const r of fresh.values()) emps.push({ id: 'emp_' + crypto.randomBytes(6).toString('hex'), createdAt: new Date().toISOString(), pid: String(r.pid), person: r.person || String(r.pid), department: fac, shift: lab[usual[r.pid] || r.shift] || 'Morning', email: '', role: 'Normal user', autoAdded: true });
+      employeeStore.save(emps);
+    }
+  } catch (e) {}
   const dates = [...new Set(records.map(r => r.date).filter(Boolean))].sort((a, b) => {
     const pa = a.split('/'), pb = b.split('/');
     return new Date(+pb[2], +pb[0] - 1, +pb[1]) - new Date(+pa[2], +pa[0] - 1, +pa[1]);
