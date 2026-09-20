@@ -670,6 +670,9 @@ a.install-btn{text-decoration:none}
 @keyframes tickerMove{from{transform:translateX(0)}to{transform:translateX(-100%)}}
 @media (prefers-reduced-motion:reduce){.ticker-track{animation:none;padding-left:16px}}
 .people-list{max-height:62vh;overflow:auto;padding-right:4px}
+#cardBody{max-height:min(62vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#cardBody .dvTable thead th{position:sticky;top:0}
+.overlay{overscroll-behavior:contain}
 .people-list .overdue-item{margin-bottom:6px}
 .icon-btn{
   width:38px;height:38px;flex:none;display:grid;place-items:center;cursor:pointer;
@@ -1007,6 +1010,7 @@ td .ndot{display:inline-block;width:7px;height:7px;border-radius:50%;background:
   animation:fadeIn .15s ease}
 .modal{width:min(420px,92vw);background:var(--surface);border:1px solid var(--border-strong);
   border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);padding:22px;
+  max-height:calc(100dvh - 24px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
   animation:modalIn .18s cubic-bezier(.2,.9,.3,1.2)}
 .modal h3{margin:0 0 16px;font-family:var(--serif);font-weight:600;font-size:19px}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -2839,7 +2843,7 @@ function openPayrollCard(pid,name){
     (j.periodDates||[]).forEach(function(ds){var p=ds.split("/");var d=new Date(+p[2],+p[0]-1,+p[1]);var v=(j.days&&j.days[ds])||0;h+='<tr><td class="tnum">'+esc(ds)+'</td><td>'+dn[d.getDay()]+'</td><td class="tnum" style="text-align:right">'+(v?(+v).toFixed(1):'<span class="z">0.0</span>')+'</td></tr>';});
     h+='</tbody><tfoot><tr><td colspan="2" style="font-weight:700">Total</td><td class="tnum" style="text-align:right;font-weight:700;color:var(--text)">'+(+j.total||0).toFixed(1)+'</td></tr></tfoot></table>';
     if(j.notes&&j.notes.length)h+='<div style="font-size:12px;color:var(--text-2);margin-top:8px">'+esc(j.notes.join("; "))+'</div>';
-    $("#cardBody").innerHTML=h;
+    $("#cardBody").innerHTML=h;if(window.labelDvTables)window.labelDvTables();
   }).catch(function(){$("#cardBody").innerHTML='<div class="modal-err">Network error.</div>';});
 }
 function openPeopleList(title,recs){
@@ -2926,6 +2930,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
 (function(){function label(t){var hs=[].map.call(t.querySelectorAll('thead th'),function(h){return h.textContent.replace(/[\u25B2\u25BC\u2191\u2193]/g,'').trim();});
     [].forEach.call(t.querySelectorAll('tbody tr'),function(tr){[].forEach.call(tr.children,function(td,i){if(hs[i]&&td.getAttribute('data-label')!==hs[i])td.setAttribute('data-label',hs[i]);});});}
   [].forEach.call(document.querySelectorAll('table.dvTable'),function(t){label(t);new MutationObserver(function(){label(t);}).observe(t,{childList:true,subtree:true});});
+  window.labelDvTables=function(){[].forEach.call(document.querySelectorAll('table.dvTable'),label);};
 })();
 </script>
 <style id="prem-motion">
