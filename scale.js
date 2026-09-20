@@ -1190,6 +1190,11 @@ header{padding-top:env(safe-area-inset-top)}
   .dvWrap{overflow:visible}
   .dvTable tbody td{white-space:normal;padding:6px 14px;border-bottom:0}
   .dvTable tbody td:empty{display:none}
+  #cardBody .dvTable thead{position:static;width:auto;height:auto;margin:0;padding:0;overflow:visible;clip:auto}
+  #cardBody .dvTable tbody tr{display:table-row;background:transparent;border:0;border-radius:0;box-shadow:none;margin:0;padding:0}
+  #cardBody .dvTable tbody td{display:table-cell;text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px}
+  #cardBody .dvTable tbody td::before{content:none}
+  #cardBody .dvTable tbody td:last-child,#cardBody .dvTable thead th:last-child{text-align:right}
   .dvTable tbody td .btn-ghost{margin-left:auto}
   #themeBtn{display:none}
   .live #liveTxt{display:none}
