@@ -670,7 +670,11 @@ a.install-btn{text-decoration:none}
 @keyframes tickerMove{from{transform:translateX(0)}to{transform:translateX(-100%)}}
 @media (prefers-reduced-motion:reduce){.ticker-track{animation:none;padding-left:16px}}
 .people-list{max-height:62vh;overflow:auto;padding-right:4px}
-#cardBody{max-height:min(62vh,560px);overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#cardBody{max-height:min(62vh,560px);overflow:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+#cardBody .dvTable{min-width:0;width:100%;table-layout:fixed}
+#cardBody .dvTable th,#cardBody .dvTable td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cardBody .dvTable th:last-child,#cardBody .dvTable td:last-child{text-align:right}
+#cardOverlay .modal{width:min(640px,94vw);max-width:none}
 #cardBody .dvTable thead th{position:sticky;top:0}
 .overlay{overscroll-behavior:contain}
 .people-list .overdue-item{margin-bottom:6px}
