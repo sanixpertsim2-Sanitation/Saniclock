@@ -278,7 +278,8 @@ input:focus{border-color:var(--brand)}
     <button class="ghost" id="logoutBtn">Sign out</button>
   </div>
   <div class="tabs">
-    <button class="tab on" data-tab="pending">Pending <span class="n" id="nPending">0</span></button>
+    <button class="tab on" data-tab="all">All employees <span class="n" id="nAll">0</span></button>
+    <button class="tab" data-tab="pending">Pending <span class="n" id="nPending">0</span></button>
     <button class="tab" data-tab="enrolled">Enrolled <span class="n" id="nEnrolled">0</span></button>
   </div>
   <div class="toolbar">
@@ -315,7 +316,7 @@ input:focus{border-color:var(--brand)}
   <label>Email (optional)</label><input id="aemail" type="email" autocomplete="off"/>
   <label style="display:flex;align-items:center;gap:9px;margin-top:10px;cursor:pointer"><input id="aapp" type="checkbox" style="width:auto;margin:0"/> App access (NGTeco app login for this person, needs the email)</label>
   <div class="err" id="addErr"></div>
-  <button class="btn" id="addSubmit">Create in NGTeco</button>
+  <button class="btn" id="addSubmit">Create person + send fingerprint request</button>
   <button class="ghost" id="addCancel" style="width:100%;margin-top:8px;height:44px">Cancel</button>
 </div></div>
 
@@ -336,7 +337,7 @@ input:focus{border-color:var(--brand)}
 <script>
 var BASE='${CFG.base}';
 var $=function(s){return document.querySelector(s);};
-var STATE={tab:'pending',list:[],q:'',pending:{code:null,personId:null,name:null,fid:6}};
+var STATE={tab:'all',list:[],q:'',pending:{code:null,personId:null,name:null,fid:6}};
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function ini(n){return String(n||'').trim().split(/\\s+/).slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();}
 function hue(n){var h=0;for(var i=0;i<(n||'').length;i++)h=(h*31+n.charCodeAt(i))%360;return h;}
@@ -383,15 +384,15 @@ function paint(){
   var q=STATE.q.toLowerCase();
   var pend=STATE.list.filter(function(e){return !isEnrolled(e);});
   var enr=STATE.list.filter(isEnrolled);
-  $('#nPending').textContent=pend.length;$('#nEnrolled').textContent=enr.length;
-  var rows=(STATE.tab==='pending'?pend:enr).filter(function(e){
+  $('#nAll').textContent=STATE.list.length;$('#nPending').textContent=pend.length;$('#nEnrolled').textContent=enr.length;
+  var rows=(STATE.tab==='all'?STATE.list:STATE.tab==='pending'?pend:enr).filter(function(e){
     return !q||String(e.name).toLowerCase().indexOf(q)>=0||String(e.code).toLowerCase().indexOf(q)>=0;
   });
   var list=$('#list');
   if(!rows.length){list.innerHTML='<div class="empty">'+(STATE.tab==='pending'?(q?'No matching pending employees.':'Everyone is enrolled. \\ud83c\\udf89'):(q?'No matching enrolled employees.':'Nobody enrolled yet.'))+'</div>';return;}
   list.innerHTML=rows.map(function(e){
     var acts;
-    if(STATE.tab==='pending'){
+    if(STATE.tab!=='enrolled'){
       acts='<div class="acts">'+
         '<button data-a="fingerprint" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">Fingerprint</button>'+
         '<button class="face" data-a="face" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">Face</button>'+
