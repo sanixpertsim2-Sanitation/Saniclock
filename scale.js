@@ -403,10 +403,13 @@ function loadLiveData() {
     for (const r of records) { const k = String(r.pid || '').toUpperCase(); if (k && !known.has(k) && !fresh.has(k)) fresh.set(k, r); }
     if (fresh.size) {
       const fac = (settingsStore.load().facilityName) || 'Ferrero';
-      const lab = { Day: 'Morning', Afternoon: 'Afternoon', Night: 'Night' };
+      const lab = { Day: 'Day', Afternoon: 'Afternoon', Night: 'Night' };
       for (const r of fresh.values()) emps.push({ id: 'emp_' + crypto.randomBytes(6).toString('hex'), createdAt: new Date().toISOString(), pid: String(r.pid), person: r.person || String(r.pid), department: fac, shift: lab[usual[r.pid] || r.shift] || 'Morning', email: '', role: 'Normal user', autoAdded: true });
       employeeStore.save(emps);
     }
+    let filled = 0;
+    for (const e of emps) { if (!e.shift && usual[String(e.pid)]) { e.shift = ({ Day: 'Day', Afternoon: 'Afternoon', Night: 'Night' })[usual[String(e.pid)]] || ''; if (e.shift) filled++; } }
+    if (filled) employeeStore.save(emps);
   } catch (e) {}
   const dates = [...new Set(records.map(r => r.date).filter(Boolean))].sort((a, b) => {
     const pa = a.split('/'), pb = b.split('/');
@@ -2700,7 +2703,7 @@ function renderEmployees(){
 function openEmpModal(rec){
   $("#empModalTitle").textContent=rec?"Edit Employee":"Add Employee";
   $("#empId").value=rec?rec.id:"";$("#empPid").value=rec?rec.pid:"";$("#empName").value=rec?rec.person:"";
-  var _shifts=[["Morning","Morning · 07:00–15:00"],["Afternoon","Afternoon · 15:00–23:00"],["Night","Night · 23:00–07:00"]];var _cs=rec&&rec.shift?rec.shift:"";if(_cs&&!_shifts.some(function(x){return x[0]===_cs;}))_shifts.unshift([_cs,_cs]);$("#empShift").innerHTML=_shifts.map(function(x){return '<option value="'+esc(x[0])+'">'+esc(x[1])+'</option>';}).join("");var _dp=["Ferrero","DC Plant"];var _cd=rec&&rec.department?rec.department:"";if(_cd&&_dp.indexOf(_cd)<0)_dp.unshift(_cd);$("#empDept").innerHTML=_dp.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>';}).join("");$("#empDept").value=_cd||"Ferrero";$("#empShift").value=_cs||"Morning";
+  var _shifts=[["Day","Day · 07:00–15:00"],["Afternoon","Afternoon · 15:00–23:00"],["Night","Night · 23:00–07:00"]];var _cs=rec&&rec.shift?rec.shift:"";if(_cs&&!_shifts.some(function(x){return x[0]===_cs;}))_shifts.unshift([_cs,_cs]);$("#empShift").innerHTML=_shifts.map(function(x){return '<option value="'+esc(x[0])+'">'+esc(x[1])+'</option>';}).join("");var _dp=["Ferrero","DC Plant"];var _cd=rec&&rec.department?rec.department:"";if(_cd&&_dp.indexOf(_cd)<0)_dp.unshift(_cd);$("#empDept").innerHTML=_dp.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>';}).join("");$("#empDept").value=_cd||"Ferrero";$("#empShift").value=_cs||"Morning";
   $("#empEmail").value=rec?rec.email||"":"";$("#empRole").value=rec?rec.role||"Normal user":"Normal user";
   $("#empErr").hidden=true;$("#empOverlay").hidden=false;$("#empPid").focus();
 }
@@ -3281,7 +3284,7 @@ $("#eqSave")&&$("#eqSave").addEventListener("click",function(){
   var msg=$("#eqMsg");
   if(!pid||!person){msg.className="msg err";msg.textContent="Person ID and name are required.";return;}
   var btn=this;btn.disabled=true;msg.className="msg";msg.textContent="";
-  j("/api/employees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pid:pid,person:person,department:dept,shift:"Morning",email:email,role:"Normal user"})})
+  j("/api/employees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pid:pid,person:person,department:dept,shift:"Day",email:email,role:"Normal user"})})
     .then(function(r){
       btn.disabled=false;
       if(r.ok){var extra=r.mailed?" · invite emailed":(email?" · email invite failed, use desktop":"");msg.className="msg ok";msg.textContent="\u2713 "+person+" added"+extra+".";EMP=[];loadPeople();setTimeout(function(){$("#empOv").classList.remove("on");},1400);}
@@ -3311,7 +3314,7 @@ $("#edEnrollToggle")&&$("#edEnrollToggle").addEventListener("click",function(){$
 $("#edSave")&&$("#edSave").addEventListener("click",function(){
   if(!actEmp)return;var msg=$("#actMsg");
   var name=$("#edName").value.trim();if(!name){msg.className="msg err";msg.textContent="Name is required.";return;}
-  var body={id:actEmp.id,pid:actEmp.pid,person:name,department:$("#edDept").value.trim(),shift:actEmp.shift||"Morning",email:$("#edEmail").value.trim(),role:actEmp.role||"Normal user"};
+  var body={id:actEmp.id,pid:actEmp.pid,person:name,department:$("#edDept").value.trim(),shift:actEmp.shift||"Day",email:$("#edEmail").value.trim(),role:actEmp.role||"Normal user"};
   var btn=this;btn.disabled=true;msg.className="msg";msg.textContent="Saving…";
   j("/api/employees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
     .then(function(r){btn.disabled=false;if(r.ok){msg.className="msg ok";msg.textContent="\u2713 Saved.";EMP=[];loadPeople();setTimeout(function(){$("#actOv").classList.remove("on");},900);}else{msg.className="msg err";msg.textContent=r.error||"Could not save.";}})
