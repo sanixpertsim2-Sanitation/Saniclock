@@ -2976,7 +2976,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
   var RM=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
   var EO=function(t){return 1-Math.pow(1-t,4);};
   var last={};
-  function countUp(el,key,to){
+  function countUp(el,key,to){el.__cu=1;
     var from=last[key]!=null?last[key]:0;
     if(RM||from===to){el.textContent=""+to;last[key]=to;return;}
     var dur=Math.min(900,320+Math.abs(to-from)*35),t0=0;
@@ -2989,7 +2989,7 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catc
       var tiles=box.querySelectorAll(".kpi");
       for(var i=0;i<tiles.length;i++){
         tiles[i].style.setProperty("--i",i);
-        var kv=tiles[i].querySelector(".kv");if(!kv)continue;
+        var kv=tiles[i].querySelector(".kv");if(!kv||kv.__cu)continue;
         var raw=(kv.textContent||"").trim();
         var lab=tiles[i].querySelector(".kl");var key=(lab&&lab.textContent)||("k"+i);
         if(/^[0-9]+$/.test(raw))countUp(kv,key,parseInt(raw,10));
