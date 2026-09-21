@@ -1716,7 +1716,7 @@ header{padding-top:env(safe-area-inset-top)}
     </div>
   </div>
   <div class="overlay" id="cardOverlay" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cardTitle" style="max-width:540px">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cardTitle" style="max-width:640px">
       <h3 id="cardTitle">Payroll card</h3>
       <div id="cardBody"></div>
       <div class="modal-actions">
