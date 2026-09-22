@@ -251,7 +251,7 @@ input:focus{border-color:var(--brand)}
 /* overlay + toast */
 .ov{position:fixed;inset:0;background:rgba(4,7,15,.7);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
 .ov.on{display:flex}
-.sheet{width:min(440px,100%);background:var(--panel);border:1px solid var(--line2);border-radius:18px;padding:24px}
+.sheet{width:min(440px,100%);max-height:calc(100dvh - 36px);overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:18px;padding:24px}
 .sheet h3{font-size:18px;font-weight:800;margin-bottom:6px}
 .sheet p{color:var(--text2);font-size:13.5px;line-height:1.55;margin-bottom:16px}
 .sheet label{margin-top:12px}
