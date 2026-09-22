@@ -142,6 +142,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (url === '/api/enroll' && req.method === 'POST') {
         const b = await body(req);
+        if (b.type !== 'fingerprint') return json(res, 400, { ok: false, message: 'Only fingerprint enrolment is enabled' });
         const r = await enrollCredential(tok, b.type, b.code, b.personId, b.fid);
         return json(res, 200, r);
       }
@@ -237,9 +238,8 @@ input:focus{border-color:var(--brand)}
 .info span{font-size:12px;color:var(--text3);font-family:ui-monospace,Menlo,monospace}
 .acts{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .acts button{border-radius:10px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;min-height:36px;border:1px solid var(--line2);background:rgba(47,123,255,.1);color:var(--brand2)}
-.acts button.face{background:rgba(203,169,103,.12);color:var(--gold);border-color:rgba(203,169,103,.32)}
-.acts button.card{background:rgba(52,211,153,.1);color:var(--emerald);border-color:rgba(52,211,153,.3)}
 .acts button:disabled{opacity:.55}
+@media (max-width:480px){.row{flex-wrap:wrap}.acts,.badges{width:100%;justify-content:flex-end}.tab{font-size:13px;gap:5px;padding:0 4px}}
 .badges{display:flex;gap:6px;flex:none}
 .badge{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:rgba(52,211,153,.12);color:var(--emerald);border:1px solid rgba(52,211,153,.3)}
 .empty{text-align:center;color:var(--text3);font-size:14px;padding:36px 12px}
@@ -261,7 +261,7 @@ input:focus{border-color:var(--brand)}
 <!-- LOGIN -->
 <div id="loginView"><div class="login">
   <h1>People &middot; ${FAC}</h1>
-  <p>Add a person and enroll fingerprint, face or card on the ${FAC} clock. Sign in to SaniClock first (<a href="${CFG.app}/login?next=${encodeURIComponent(CFG.base + '/')}" style="color:inherit">open sign-in</a>) or enter the access password.</p>
+  <p>Add a person and enroll their fingerprint on the ${FAC} clock. Sign in to SaniClock first (<a href="${CFG.app}/login?next=${encodeURIComponent(CFG.base + '/')}" style="color:inherit">open sign-in</a>) or enter the access password.</p>
   <label for="pw">Access password</label>
   <input id="pw" type="password" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autofocus/>
   <div class="err" id="loginErr"></div>
@@ -379,7 +379,7 @@ function render(j){
   STATE.dev=d;
   paint();
 }
-function isEnrolled(e){return (e.fp+e.face+e.card)>0;}
+function isEnrolled(e){return e.fp>0;}
 function paint(){
   var q=STATE.q.toLowerCase();
   var pend=STATE.list.filter(function(e){return !isEnrolled(e);});
@@ -394,11 +394,9 @@ function paint(){
     var acts;
     if(STATE.tab!=='enrolled'){
       acts='<div class="acts">'+
-        '<button data-a="fingerprint" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">Fingerprint</button>'+
-        '<button class="face" data-a="face" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">Face</button>'+
-        '<button class="card" data-a="card" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">Card</button></div>';
+        '<button data-a="fingerprint" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">Enrol fingerprint</button></div>';
     }else{
-      var b=[];if(e.fp)b.push('<span class="badge">Fingerprint</span>');if(e.face)b.push('<span class="badge">Face</span>');if(e.card)b.push('<span class="badge">Card</span>');
+      var b=['<span class="badge">Fingerprint</span>'];
       acts='<div class="badges">'+b.join('')+'</div>';
     }
     return '<div class="row"><span class="av" style="'+avatar(e.name)+'">'+esc(ini(e.name))+'</span>'+
