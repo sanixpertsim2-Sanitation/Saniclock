@@ -50,6 +50,10 @@ function apiSend(tok, method, path, body) {
 
 async function ferreroRoster(tok) {
   const out = []; let page = 1, total = null;
+  // ponytail: NGTeco cloud reports 0 fingerprints for everyone, so "enrolled" = has punched by fingerprint on this clock (31-day punch store)
+  const fpSeen = new Set();
+  try { const seen = JSON.parse(require('fs').readFileSync('/opt/saniclock/data/ngteco-seen.json', 'utf8'));
+    for (const k in seen) { const p = seen[k]; if (p && p.punch_from === CFG.sn && /finger/i.test(p.verify_type || '')) fpSeen.add(String(p.employee_code)); } } catch (e) {}
   while (true) {
     const r = await apiGet(tok, '/hr/api/v2.0/employees/?current=' + page + '&pageSize=100&keyword=&departments=' + FERRERO_DEPT);
     const d = r.data || {}; const rows = d.data || []; if (total === null) total = d.total || 0;
@@ -59,7 +63,7 @@ async function ferreroRoster(tok) {
       const appAccess = !!e.userId, appEmail = '';   // NGTeco app login exists for this person
       out.push({ id: e.id, code: code, name: e.fullName || ((e.firstName || '') + ' ' + (e.lastName || '')).trim(),
         email: e.email || appEmail || '', appAccess: appAccess,
-        fp: c.fingerPrint || 0, face: (c.visibleLightFace || c.face || 0), card: c.card || 0 });
+        fp: fpSeen.has(String(code)) ? 1 : (c.fingerPrint || 0), face: (c.visibleLightFace || c.face || 0), card: c.card || 0 });
     }
     if (page * 100 >= total || rows.length === 0) break; page++;
   }
@@ -215,6 +219,7 @@ input:focus{border-color:var(--brand)}
 .hdr .t{flex:1;min-width:0}
 .hdr b{font-size:20px;font-weight:800;letter-spacing:-.3px;display:block}
 .hdr span{font-size:12px;color:var(--text2)}
+@media (max-width:600px){.hdr{flex-wrap:wrap;gap:8px}.hdr .t{flex:1 1 100%}.hdr .ghost{flex:1;text-align:center;justify-content:center}}
 .dev{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
 .pill{font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:3px 9px;border-radius:999px;border:1px solid var(--line2)}
 .pill.on{color:var(--emerald);border-color:rgba(52,211,153,.35);background:rgba(52,211,153,.1)}
