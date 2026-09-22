@@ -241,7 +241,7 @@ input:focus{border-color:var(--brand)}
 .info{min-width:0;flex:1}
 .info b{font-size:15px;font-weight:700;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .info span{font-size:12px;color:var(--text3);font-family:ui-monospace,Menlo,monospace}
-.acts{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.acts{display:flex;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 .acts button{border-radius:10px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer;min-height:36px;border:1px solid var(--line2);background:rgba(47,123,255,.1);color:var(--brand2)}
 .acts button:disabled{opacity:.55}
 @media (max-width:480px){.row{flex-wrap:wrap}.acts,.badges{width:100%;justify-content:flex-end}.tab{font-size:13px;gap:5px;padding:0 4px}}
@@ -283,7 +283,7 @@ input:focus{border-color:var(--brand)}
     <button class="ghost" id="logoutBtn">Sign out</button>
   </div>
   <div class="tabs">
-    <button class="tab on" data-tab="all">All employees <span class="n" id="nAll">0</span></button>
+    <button class="tab on" data-tab="all">All <span class="n" id="nAll">0</span></button>
     <button class="tab" data-tab="pending">Pending <span class="n" id="nPending">0</span></button>
     <button class="tab" data-tab="enrolled">Enrolled <span class="n" id="nEnrolled">0</span></button>
   </div>
@@ -396,14 +396,9 @@ function paint(){
   var list=$('#list');
   if(!rows.length){list.innerHTML='<div class="empty">'+(STATE.tab==='pending'?(q?'No matching pending employees.':'Everyone is enrolled. \\ud83c\\udf89'):(q?'No matching enrolled employees.':'Nobody enrolled yet.'))+'</div>';return;}
   list.innerHTML=rows.map(function(e){
-    var acts;
-    if(STATE.tab!=='enrolled'){
-      acts='<div class="acts">'+
-        '<button data-a="fingerprint" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">Enrol fingerprint</button></div>';
-    }else{
-      var b=['<span class="badge">Fingerprint</span>'];
-      acts='<div class="badges">'+b.join('')+'</div>';
-    }
+    var on=isEnrolled(e);
+    var acts='<div class="acts">'+(on?'<span class="badge">Fingerprint</span>':'')+
+        '<button data-a="fingerprint" data-code="'+esc(e.code)+'" data-id="'+esc(e.id)+'" data-name="'+esc(e.name)+'">'+(on?'Re-enrol':'Enrol fingerprint')+'</button></div>';
     return '<div class="row"><span class="av" style="'+avatar(e.name)+'">'+esc(ini(e.name))+'</span>'+
       '<div class="info"><b>'+esc(e.name)+'</b><span>ID '+esc(e.code)+(e.email?' \\u00b7 '+esc(e.email):'')+(e.appAccess?' \\u00b7 App access':'')+'</span></div>'+acts+'</div>';
   }).join('');
